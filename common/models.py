@@ -1,7 +1,7 @@
 from django.db import models
 
 class User(models.Model):
-    key = models.UUIDField(primary_key=True)
+    key = models.AutoField(primary_key=True)
     military_serial_number = models.CharField(max_length=15, unique=True) #id
     password = models.CharField(max_length=20)
     created_at = models.DateTimeField(auto_now_add=True)

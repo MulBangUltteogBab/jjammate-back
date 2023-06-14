@@ -6,17 +6,19 @@ from .models import User, UserAdd, UserHealth
 from config.settings import SECRET_KEY
 from rest_framework.views import APIView 
 from drf_yasg.utils       import swagger_auto_schema
-from drf_yasg             import openapi    
+from drf_yasg             import openapi
+from .serializer import *
 
 from django.views import View
 from django.http import HttpResponse, JsonResponse
 from django.core.exceptions import ValidationError
+from django.db import transaction
 
 
 class Register(APIView):
     @swagger_auto_schema(tags=['User Register'], request_body=RegisterSerializer)
     @transaction.atomic
-    def post(request):
+    def post(self, request):
         data = json.loads(request.body)
         try:
             if User.objects.filter(military_serial_number = data['military_serial_number']).exists():
@@ -30,20 +32,23 @@ class Register(APIView):
                     data["password"].encode("UTF-8"), 
                     bcrypt.gensalt()
                 ).decode("UTF-8"),
-            ).save()
-            UserAdd.objects.create(
+            )
+            add = UserAdd.objects.create(
                 key = user,
                 nickname = data['nickname'],
-                user_name = data['username'],
+                username = data['username'],
                 department = data['department'],
                 sex = data['sex'],
                 age = data['age'],
-            ).save()
-            UserHealth.objects.create(
+            )
+            health = UserHealth.objects.create(
                 key = user,
                 height = data['height'],
                 weight = data['weight'],
-            ).save()
+            )
+            user.save()
+            add.save()
+            health.save()
 
             return HttpResponse(status=200)
             
@@ -54,7 +59,7 @@ class Register(APIView):
 class Login(APIView):
     @swagger_auto_schema(tags=['User Login'], request_body=LoginSerializer)
     @transaction.atomic
-    def post(request):
+    def post(self, request):
         data = json.loads(request.body)
 
         try:
@@ -62,7 +67,7 @@ class Login(APIView):
                 user = User.objects.get(military_serial_number = data["military_serial_number"])
 
                 if bcrypt.checkpw(data['password'].encode('UTF-8'), user.password.encode('UTF-8')):
-                    token = jwt.encode({'user' : user.key}, SECRET_KEY, algorithm='HS256').decode('UTF-8')
+                    token = jwt.encode({'user' : user.key}, SECRET_KEY, algorithm='HS256')
                     return JsonResponse({"token" : token}, status=200)
 
                 return HttpResponse(status=401)
