@@ -4,13 +4,18 @@ import jwt
 
 from .models import User, UserAdd, UserHealth
 from config.settings import SECRET_KEY
+from rest_framework.views import APIView 
+from drf_yasg.utils       import swagger_auto_schema
+from drf_yasg             import openapi    
 
 from django.views import View
 from django.http import HttpResponse, JsonResponse
 from django.core.exceptions import ValidationError
 
 
-class Register(View):
+class Register(APIView):
+    @swagger_auto_schema(tags=['User Register'], request_body=RegisterSerializer)
+    @transaction.atomic
     def post(request):
         data = json.loads(request.body)
         try:
@@ -46,8 +51,10 @@ class Register(View):
             return JsonResponse({"message" : "INVALID_KEYS"}, status=400)
 
 
-class Login(View):
-    def login(request):
+class Login(APIView):
+    @swagger_auto_schema(tags=['User Login'], request_body=LoginSerializer)
+    @transaction.atomic
+    def post(request):
         data = json.loads(request.body)
 
         try:
