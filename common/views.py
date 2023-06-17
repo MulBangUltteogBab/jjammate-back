@@ -19,7 +19,7 @@ class Register(APIView):
     @swagger_auto_schema(tags=['User Register'], request_body=RegisterSerializer)
     @transaction.atomic
     def post(self, request):
-        data = json.loads(request.body)
+        data = request.data
         try:
             if User.objects.filter(military_serial_number = data['military_serial_number']).exists():
                 return JsonResponse({"message" : "EXISTS_MILITARY_SERIAL_NUMBER"}, status=400)
@@ -60,7 +60,7 @@ class Login(APIView):
     @swagger_auto_schema(tags=['User Login'], request_body=LoginSerializer)
     @transaction.atomic
     def post(self, request):
-        data = json.loads(request.body)
+        data = request.data
 
         try:
             if User.objects.filter(military_serial_number = data["military_serial_number"]).exists():
