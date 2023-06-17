@@ -11,7 +11,8 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
-from .jsonparser import getJsonValue
+from core.jsonparser import getJsonValue
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -40,6 +41,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'drf_yasg',
     'common',
+    'diet'
 ]
 
 MIDDLEWARE = [
@@ -135,11 +137,21 @@ LOGGING = {
             'class': 'logging.FileHandler',
             'filename': 'django.log',
         },
+        'mbub': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': 'user.log',
+        }
     },
     'loggers': {
         'django.request': {
             'handlers': ['file'],
             'level': 'ERROR',
+            'propagate': True,
+        },
+        'mbub': {
+            'handlers': ['file'],
+            'level': 'INFO',
             'propagate': True,
         },
     },
