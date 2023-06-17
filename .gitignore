@@ -163,3 +163,4 @@ venv.sh
 settings.json
 __init__.py
 migrations/
+csv/
