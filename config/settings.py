@@ -150,7 +150,7 @@ LOGGING = {
             'propagate': True,
         },
         'mbub': {
-            'handlers': ['file'],
+            'handlers': ['mbub'],
             'level': 'INFO',
             'propagate': True,
         },
