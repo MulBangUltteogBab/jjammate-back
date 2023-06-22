@@ -1,10 +1,13 @@
 from django.db import models
 
+
 class PXFood(models.Model):
     name = models.CharField(max_length=60, primary_key=True)
-    sellyear = models.SmallIntegerField()
-    sellmonth = models.SmallIntegerField()
+    price = models.SmallIntegerField()
+    manufacturer = models.CharField(max_length=60)
     image = models.ImageField()
+    amount = models.CharField(max_length=10)
+
 
 class Diet(models.Model):
     military_number = models.SmallIntegerField()
@@ -18,9 +21,12 @@ class Diet(models.Model):
     }
     '''
 
-class DietFood(models.Model):
+
+class Nutrition(models.Model):
     name = models.CharField(max_length=60, primary_key=True)
-    calorie = models.SmallIntegerField()
-    carbohydrate = models.SmallIntegerField()
-    protein = models.SmallIntegerField()
-    fat = models.SmallIntegerField()
+    calorie = models.CharField(max_length=10)
+    # kcal is unit
+    carbohydrate = models.CharField(max_length=10)
+    protein = models.CharField(max_length=10)
+    fat = models.CharField(max_length=10)
+    amount = models.CharField(max_length=10)

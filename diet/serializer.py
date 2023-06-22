@@ -9,14 +9,14 @@ class StackDietSerializer(serializers.Serializer):
     ])
 
 
+class GetDietSerializer(serializers.Serializer):
+    military_number = serializers.IntegerField(default=6335)
+
+
 class GetPXFoodSerializer(serializers.Serializer):
     not_imple = serializers.IntegerField()
 
 
-class GetDietSerializer(serializers.Serializer):
-    military_number = serializers.IntegerField()
-    date = serializers.DateField()
-
-
 class RecommendSerializer(serializers.Serializer):
     not_imple = serializers.IntegerField()
+
