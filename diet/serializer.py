@@ -15,7 +15,7 @@ class GetDietSerializer(serializers.Serializer):
 
 
 class GetPXFoodSerializer(serializers.Serializer):
-    not_imple = serializers.IntegerField()
+    name = serializers.CharField(help_text='찾고자 하는 PX 식품 이름', max_length=60, default='라면')
 
 
 class RecommendSerializer(serializers.Serializer):

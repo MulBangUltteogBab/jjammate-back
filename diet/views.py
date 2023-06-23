@@ -33,22 +33,47 @@ class Recommend(APIView):
 
 # search with name
 class GetPXFood(APIView):
-    @swagger_auto_schema(tags=['not implement'], request_body=GetPXFoodSerializer)
+    @swagger_auto_schema(tags=['About PXFood'], request_body=GetPXFoodSerializer)
     @transaction.atomic
     @csrf_exempt
     def post(self, request):
         data = request.data
         try:
             name = data['name']
-            pxfood = PXFood.objects.get(name=name).values()
-            return JsonResponse(pxfood, status=200)
+            pxfoods = PXFood.objects.all()
+            body = {
+                "pxfoods": []
+            }
+            for pxfood in pxfoods:
+                if pxfood.name.find(data['name']) != -1:
+                    nutr = Nutrition.objects.filter(name = pxfood.name)
+                    if not nutr.exists():
+                        body['pxfoods'].append({
+                            "name": pxfood.name,
+                            "calorie": "",
+                            "carbohydrate": "",
+                            "protein": "",
+                            "fat": "",
+                            "amount":""
+                        })
+                    else:
+                        nutr = Nutrition.objects.get(name = pxfood.name)
+                        body['pxfoods'].append({
+                            "name": pxfood.name,
+                            "calorie": nutr.calorie,
+                            "carbohydrate": nutr.carbohydrate,
+                            "protein": nutr.protein,
+                            "fat": nutr.fat,
+                            "amount": nutr.amount
+                        })
+            return JsonResponse(body, status=200)
 
         except KeyError:
             return JsonResponse({"message" : "NO DATA"}, status=400)
 
 
 class GetDiet(APIView):
-    @swagger_auto_schema(tags=['About Food'], request_body=GetDietSerializer)
+    @swagger_auto_schema(tags=['About Diet'], request_body=GetDietSerializer)
     @transaction.atomic
     @csrf_exempt
     def post(self, request):
@@ -131,7 +156,7 @@ class GetDiet(APIView):
     
 
 class StackDiet(APIView):
-    @swagger_auto_schema(tags=['About Food'], request_body=StackDietSerializer)
+    @swagger_auto_schema(tags=['About Diet'], request_body=StackDietSerializer)
     @transaction.atomic
     @csrf_exempt
     def post(self, request):
@@ -194,7 +219,7 @@ class StackDiet(APIView):
 
 
 class StackPXFood(APIView):
-    @swagger_auto_schema(tags=['About Food'])
+    @swagger_auto_schema(tags=['About PXFood'])
     @transaction.atomic
     @csrf_exempt
     def get(self, request):
