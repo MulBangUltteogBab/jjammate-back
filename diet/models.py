@@ -2,8 +2,8 @@ from django.db import models
 
 
 class PXFood(models.Model):
-    name = models.CharField(max_length=60, primary_key=True)
-    price = models.SmallIntegerField()
+    name = models.CharField(max_length=60)
+    price = models.CharField(max_length=10)
     manufacturer = models.CharField(max_length=60)
     image = models.ImageField()
     amount = models.CharField(max_length=10)

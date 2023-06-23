@@ -63,7 +63,7 @@ class GetDiet(APIView):
             body['dinner'] = []
             for breakfast in diet.diet["breakfast"]:
                 nutr = Nutrition.objects.filter(name = breakfast)
-                if nutr.exists():
+                if not nutr.exists():
                     body['breakfast'].append({
                         "name": breakfast,
                         "calorie": "",
@@ -73,6 +73,7 @@ class GetDiet(APIView):
                         "amount":""
                     })
                 else:
+                    nutr = Nutrition.objects.get(name = breakfast)
                     body['breakfast'].append({
                         "name": breakfast,
                         "calorie": nutr.calorie,
@@ -83,7 +84,7 @@ class GetDiet(APIView):
                     })
             for lunch in diet.diet["lunch"]:
                 nutr = Nutrition.objects.filter(name = lunch)
-                if nutr.exists():
+                if not nutr.exists():
                     body['lunch'].append({
                         "name": lunch,
                         "calorie": "",
@@ -93,6 +94,7 @@ class GetDiet(APIView):
                         "amount":""
                     })
                 else:
+                    nutr = Nutrition.objects.get(name = lunch)
                     body['lunch'].append({
                         "name": lunch,
                         "calorie": nutr.calorie,
@@ -103,7 +105,7 @@ class GetDiet(APIView):
                     })
             for dinner in diet.diet["dinner"]:
                 nutr = Nutrition.objects.filter(name = dinner)
-                if nutr.exists():
+                if not nutr.exists():
                     body['dinner'].append({
                         "name": dinner,
                         "calorie": "",
@@ -113,6 +115,7 @@ class GetDiet(APIView):
                         "amount":""
                     })
                 else:
+                    nutr = Nutrition.objects.get(name = dinner)
                     body['dinner'].append({
                         "name": dinner,
                         "calorie": nutr.calorie,
@@ -137,6 +140,7 @@ class StackDiet(APIView):
             military_number = data['military_number']
             today = datetime.date.today()
             for n in military_number:
+                logger.info("military_number: {}".format(n))
                 diets = getDiet(n)
                 mealbydates = {}
                 for diet in diets:
@@ -195,15 +199,15 @@ class StackPXFood(APIView):
     @csrf_exempt
     def get(self, request):
         try:
-            pxfoods, length = parsePXFood()
-            for i in range(0, length):
+            pxfoods = parsePXFood()
+            for i in range(0, len(pxfoods["name"])):
                 PXFood.objects.create(
-                    manufacturer = pxfoods["manufacturer"][i],
                     name = pxfoods["name"][i],
-                    amount = pxfoods["amount"][i],
                     price = pxfoods["price"][i],
+                    manufacturer = pxfoods["manufacturer"][i],
+                    amount = pxfoods["amount"][i],
                 ).save()
-
+                logger.info("pxfood: {}".format(pxfoods["name"][i]))
                 if Nutrition.objects.filter(name = pxfoods["name"][i]).exists():
                     continue
                 nutritiondict, isvaild = mappingFoodToNutrient(pxfoods["name"][i])
@@ -222,5 +226,3 @@ class StackPXFood(APIView):
                     
         except KeyError:
             return JsonResponse({"message" : "NO DATA"}, status=400)
-        except:
-            return JsonResponse({"message" : "Error in Server"}, status=400)
