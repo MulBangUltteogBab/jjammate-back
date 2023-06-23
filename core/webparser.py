@@ -15,6 +15,7 @@ url = 'https://tsar1004.blogspot.com/2020/05/px.html'
 
 consumer_key = getJsonValue("FATSECRET_CONSUMER_KEY")
 consumer_secret = getJsonValue("FATSECRET_CONSUMER_SECRET")
+manufacturer = getJsonValue("MANUFACTURER")
 
 logger = logging.getLogger('mbub')
 KEY = getJsonValue('DIET-KEY')
@@ -54,15 +55,16 @@ def parsePXFood():
             pxfooddict = {
                 "manufacturer": [],
                 "name": [],
-                "size": [],
+                "amount": [],
                 "price": []
             }
             for i in range(0, len(tds), 4):
-                pxfooddict["manufacturer"].append(tds[i].text)
-                pxfooddict["name"].append(tds[i+1].text)
-                pxfooddict["size"].append(tds[i+2].text)
-                pxfooddict["price"].append(tds[i+3].text)
-            return pxfooddict, len(tds)//4
+                if tds[i].text in manufacturer:
+                    pxfooddict["manufacturer"].append(tds[i].text)
+                    pxfooddict["name"].append(tds[i+1].text)
+                    pxfooddict["amount"].append(tds[i+2].text)
+                    pxfooddict["price"].append(tds[i+3].text)
+            return pxfooddict
         return None
 
     except:
@@ -83,6 +85,7 @@ def mappingFoodToNutrient(food):
             for data in idx:
                 if data != '':
                     nulist.append(data)
+        logger.info("Matching nutritiondict")
         return {
             "amount": nulist[0], 
             "calorie": nulist[1], 
