@@ -10,7 +10,7 @@ from rest_framework.views import APIView
 from drf_yasg.utils       import swagger_auto_schema
 from drf_yasg             import openapi
 from config.settings import SECRET_KEY
-from core.webparser import parsePXFood, getDiet, isValidDate, mappingFoodToNutrient
+from core.webparser import parsePXFood, getDiet, isValidDate, mappingFoodToNutrient, parsePXFoodPicture
 
 from django.views import View
 from django.http import HttpResponse, JsonResponse
@@ -54,7 +54,8 @@ class GetPXFood(APIView):
                             "carbohydrate": "",
                             "protein": "",
                             "fat": "",
-                            "amount":""
+                            "amount":"",
+                            "image": ""
                         })
                     else:
                         nutr = Nutrition.objects.get(name = pxfood.name)
@@ -64,7 +65,8 @@ class GetPXFood(APIView):
                             "carbohydrate": nutr.carbohydrate,
                             "protein": nutr.protein,
                             "fat": nutr.fat,
-                            "amount": nutr.amount
+                            "amount": nutr.amount,
+                            "image": pxfood.image.url
                         })
             return JsonResponse(body, status=200)
 
@@ -226,11 +228,13 @@ class StackPXFood(APIView):
         try:
             pxfoods = parsePXFood()
             for i in range(0, len(pxfoods["name"])):
+                imagepos = parsePXFoodPicture(pxfoods["name"][i])
                 PXFood.objects.create(
                     name = pxfoods["name"][i],
                     price = pxfoods["price"][i],
                     manufacturer = pxfoods["manufacturer"][i],
                     amount = pxfoods["amount"][i],
+                    image = imagepos
                 ).save()
                 logger.info("pxfood: {}".format(pxfoods["name"][i]))
                 if Nutrition.objects.filter(name = pxfoods["name"][i]).exists():
