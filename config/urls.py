@@ -21,6 +21,9 @@ from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg       import openapi
 
+from django.conf.urls.static import static
+from django.conf import settings
+
 schema_view = get_schema_view(
     openapi.Info(
         title="MulBangUltteogBab-project",
@@ -40,3 +43,5 @@ urlpatterns = [
     path('common/', include('common.urls')),
     path('diet/', include('diet.urls')),
 ]
+
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
