@@ -1,4 +1,5 @@
 import re
+import os
 import json
 import logging
 import requests as req
@@ -9,9 +10,20 @@ from bs4 import BeautifulSoup
 from .jsonparser import getJsonValue
 from .papago import korToEng
 
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from selenium.common.exceptions import NoSuchElementException
+from webdriver_manager.chrome import ChromeDriverManager
+from urllib.parse import quote_plus
+from urllib.request import urlretrieve
+from time import sleep
+
+
 # print(json.dumps(json, indent=3, ensure_ascii=False))
 
 url = 'https://tsar1004.blogspot.com/2020/05/px.html'
+picture = 'https://search.naver.com/search.naver?where=image&query='
 
 consumer_key = getJsonValue("FATSECRET_CONSUMER_KEY")
 consumer_secret = getJsonValue("FATSECRET_CONSUMER_SECRET")
@@ -22,6 +34,18 @@ KEY = getJsonValue('DIET-KEY')
 TYPE = 'json'
 START_INDEX = '1'
 END_INDEX = '1'
+imagedir = 'image/'
+
+options = webdriver.ChromeOptions()
+options.add_argument('window-size=1100,900')
+options.add_argument('--headless')
+driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+driver.implicitly_wait(5)
+
+
+def makeDir(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
 
 
 def getDiet(military_num):
@@ -104,11 +128,28 @@ def mappingFoodToNutrient(food):
         
 
 
-#def parsePXFoodPicture(pxfoodname):
+def parsePXFoodPicture(pxfoodname):
+    makeDir('image')
+    try:
+        logger.info("{} in parsePXFoodPicture".format(pxfoodname))
+        query = quote_plus(pxfoodname, safe='')
+        naverurl = picture + query
+        for i in range(0, 7):
+            if checkandsaveImgTag(i, pxfoodname, naverurl):
+                return pxfoodname + ".jpg"
+        return ''
 
-# def getPXFood():
-#     SERVICE = 'DS_MND_PX_PARD_PRDT_INFO'
-#     data = sendReq(SERVICE)
-#     index = data['list_total_count']
-#     data = sendReq(SERVICE, end_index=index)
-#     return data[row]
+    except Exception as e:
+        logger.info("parsePXFoodPicture error")
+        raise
+
+
+def checkandsaveImgTag(n, pxfoodname, naverurl):
+    try:
+        driver.get(naverurl)
+        img = driver.find_element(By.XPATH, '/html/body/div[3]/div[2]/div/div[1]/section['+ str(n) +']/div/div[1]/div[1]/div[1]/div/div[1]/a/img')
+        imgUrl = img.get_attribute('src')
+        urlretrieve(imgUrl, imagedir + pxfoodname + ".jpg")
+        return True
+    except NoSuchElementException:
+        return False
