@@ -17,7 +17,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 
 class Register(APIView):
-    @swagger_auto_schema(tags=['User Register'], request_body=RegisterSerializer)
+    @swagger_auto_schema(tags=['User'], request_body=RegisterSerializer)
     @transaction.atomic
     @csrf_exempt
     def post(self, request):
@@ -59,7 +59,7 @@ class Register(APIView):
 
 
 class Login(APIView):
-    @swagger_auto_schema(tags=['User Login'], request_body=LoginSerializer)
+    @swagger_auto_schema(tags=['User'], request_body=LoginSerializer)
     @transaction.atomic
     @csrf_exempt
     def post(self, request):
