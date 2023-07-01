@@ -11,29 +11,87 @@ from drf_yasg.utils       import swagger_auto_schema
 from drf_yasg             import openapi
 from config.settings import SECRET_KEY
 from core.webparser import parsePXFood, getDiet, isValidDate, mappingFoodToNutrient, parsePXFoodPicture
+from core.unit import deleteUnit
+from core.recommand import recommand
 
-from django.views import View
 from django.http import HttpResponse, JsonResponse
-from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import Max
 from django.views.decorators.csrf import csrf_exempt
 
 logger = logging.getLogger('mbub')
 
 
 class Recommend(APIView):
-    @swagger_auto_schema(tags=['not implement'], request_body=RecommendSerializer)
+    @swagger_auto_schema(tags=['About Diet'], request_body=RecommendSerializer)
     @transaction.atomic
     @csrf_exempt
     def post(self, request):
         data = request.data
-        return JsonResponse({"message" : "not implement"}, status=400)
+        try:
+            military_number = data['military_number']
+            date = datetime.date.today().strftime('%Y-%m-%d')
+            diet = Diet.objects.get(military_number = military_number, date = date)
+            body = {
+                "pxfoods": []
+            }
+            total = {
+                "calorie": 0,
+                "carbohydrate": 0,
+                "protein": 0,
+                "fat": 0,
+            }
+            for breakfast in diet.diet["breakfast"]:
+                nutr = Nutrition.objects.filter(name = breakfast)
+                if not nutr.exists():
+                    total['calorie'] += 100
+                else:
+                    nutr = Nutrition.objects.get(name = breakfast)
+                    total['calorie'] += int(deleteUnit(nutr.calorie))
+                    total['carbohydrate'] += int(deleteUnit(nutr.carbohydrate))
+                    total['protein'] += int(deleteUnit(nutr.protein))
+                    total['fat'] += int(deleteUnit(nutr.fat))
+            for lunch in diet.diet["lunch"]:
+                nutr = Nutrition.objects.filter(name = lunch)
+                if not nutr.exists():
+                    total['calorie'] += 100
+                else:
+                    nutr = Nutrition.objects.get(name = lunch)
+                    total['calorie'] += int(deleteUnit(nutr.calorie))
+                    total['carbohydrate'] += int(deleteUnit(nutr.carbohydrate))
+                    total['protein'] += int(deleteUnit(nutr.protein))
+                    total['fat'] += int(deleteUnit(nutr.fat))
+            for dinner in diet.diet["dinner"]:
+                nutr = Nutrition.objects.filter(name = dinner)
+                if not nutr.exists():
+                    total['calorie'] += 100
+                else:
+                    nutr = Nutrition.objects.get(name = dinner)
+                    total['calorie'] += int(deleteUnit(nutr.calorie))
+                    total['carbohydrate'] += int(deleteUnit(nutr.carbohydrate))
+                    total['protein'] += int(deleteUnit(nutr.protein))
+                    total['fat'] += int(deleteUnit(nutr.fat))
+
+            pxfoods = PXFood.objects.all()
+            for pxfood in pxfoods:
+                nutr = Nutrition.objects.filter(name = pxfood.name)
+                if recommand(nutr, total):
+                    body['pxfoods'].append({
+                            "name": pxfood.name,
+                            "calorie": nutr.calorie,
+                            "carbohydrate": nutr.carbohydrate,
+                            "protein": nutr.protein,
+                            "fat": nutr.fat,
+                            "amount": nutr.amount,
+                            "image": pxfood.image.url
+                        })
+            return JsonResponse(body, status=200)
+
+        except:
+            return JsonResponse({"message" : "in Recommand"}, status=400)
 
 
-# search with name
 class GetPXFood(APIView):
-    @swagger_auto_schema(tags=['About PXFood'], request_body=GetPXFoodSerializer)
+    @swagger_auto_schema(tags=['About Diet'], request_body=GetPXFoodSerializer)
     @transaction.atomic
     @csrf_exempt
     def post(self, request):
@@ -157,8 +215,22 @@ class GetDiet(APIView):
             return JsonResponse({"message" : "NO DATA"}, status=400)
     
 
+class GetGauge(APIView):
+    @swagger_auto_schema(tags=['not implement'], request_body=GetDietGaugeSerializer)
+    @transaction.atomic
+    @csrf_exempt
+    def post(self, request):
+        data = request.data
+        try:
+            military_serial_number = data['military_serial_number']
+            return JsonResponse({"message" : "Not Implement"}, status=200)
+
+        except KeyError:
+            return JsonResponse({"message" : "NO DATA"}, status=400)
+
+
 class StackDiet(APIView):
-    @swagger_auto_schema(tags=['About Diet'], request_body=StackDietSerializer)
+    @swagger_auto_schema(tags=['About Parsing'], request_body=StackDietSerializer)
     @transaction.atomic
     @csrf_exempt
     def post(self, request):
@@ -221,35 +293,35 @@ class StackDiet(APIView):
 
 
 class StackPXFood(APIView):
-    @swagger_auto_schema(tags=['About PXFood'])
+    @swagger_auto_schema(tags=['About Parsing'])
     @transaction.atomic
     @csrf_exempt
     def get(self, request):
         try:
             pxfoods = parsePXFood()
             for i in range(0, len(pxfoods["name"])):
-                imagepos = parsePXFoodPicture(pxfoods["name"][i])
-                PXFood.objects.create(
-                    name = pxfoods["name"][i],
-                    price = pxfoods["price"][i],
-                    manufacturer = pxfoods["manufacturer"][i],
-                    amount = pxfoods["amount"][i],
-                    image = imagepos
-                ).save()
-                logger.info("pxfood: {}".format(pxfoods["name"][i]))
-                if Nutrition.objects.filter(name = pxfoods["name"][i]).exists():
-                    continue
-                nutritiondict, isvaild = mappingFoodToNutrient(pxfoods["name"][i])
-                if not isvaild:
-                    continue
-                Nutrition.objects.create(
-                    name = pxfoods["name"][i],
-                    calorie = nutritiondict["calorie"],
-                    carbohydrate = nutritiondict["carbohydrate"],
-                    protein = nutritiondict["protein"],
-                    fat = nutritiondict["fat"],
-                    amount = nutritiondict["amount"]
-                ).save()
+                if not PXFood.objects.filter(name = pxfoods["name"][i]).exists():
+                    imagepos = parsePXFoodPicture(pxfoods["name"][i])
+                    PXFood.objects.create(
+                        name = pxfoods["name"][i],
+                        price = pxfoods["price"][i],
+                        manufacturer = pxfoods["manufacturer"][i],
+                        amount = pxfoods["amount"][i],
+                        image = imagepos
+                    ).save()
+                    logger.info("pxfood: {}".format(pxfoods["name"][i]))
+                if not Nutrition.objects.filter(name = pxfoods["name"][i]).exists():
+                    nutritiondict, isvaild = mappingFoodToNutrient(pxfoods["name"][i])
+                    if not isvaild:
+                        continue
+                    Nutrition.objects.create(
+                        name = pxfoods["name"][i],
+                        calorie = nutritiondict["calorie"],
+                        carbohydrate = nutritiondict["carbohydrate"],
+                        protein = nutritiondict["protein"],
+                        fat = nutritiondict["fat"],
+                        amount = nutritiondict["amount"]
+                    ).save()
 
             return JsonResponse({"message" : "Done"}, status=200)
                     

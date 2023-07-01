@@ -19,5 +19,8 @@ class GetPXFoodSerializer(serializers.Serializer):
 
 
 class RecommendSerializer(serializers.Serializer):
-    not_imple = serializers.IntegerField()
+    military_number = serializers.IntegerField(default=6335)
 
+
+class GetDietGaugeSerializer(serializers.Serializer):
+    military_serial_number = serializers.CharField(help_text='군번', max_length=15)
