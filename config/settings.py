@@ -43,7 +43,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'drf_yasg',
     'common',
-    'diet'
+    'diet',
+    'exercise'
 ]
 
 MIDDLEWARE = [
