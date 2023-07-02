@@ -1,17 +1,17 @@
 import json
 import bcrypt
 import jwt
+import logging
 
 from .models import User, UserAdd, UserHealth
+from exercise.models import ExerciseSelector, SpecialAgentMaximum
 from config.settings import SECRET_KEY
 from rest_framework.views import APIView 
 from drf_yasg.utils       import swagger_auto_schema
 from drf_yasg             import openapi
 from .serializer import *
 
-from django.views import View
 from django.http import HttpResponse, JsonResponse
-from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.views.decorators.csrf import csrf_exempt
 
@@ -48,9 +48,21 @@ class Register(APIView):
                 height = data['height'],
                 weight = data['weight'],
             )
+            selector = ExerciseSelector.objects.create(
+                key = user,
+                number = 0
+            )
+            maximum = SpecialAgentMaximum.objects.create(
+                key = user,
+                run = "00:00",
+                pushup = "0",
+                situp = "0"
+            )
             user.save()
             add.save()
             health.save()
+            selector.save()
+            maximum.save()
 
             return HttpResponse(status=200)
             
