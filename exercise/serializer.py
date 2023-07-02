@@ -26,3 +26,7 @@ class SetMaximumTimeSerializer(serializers.Serializer):
 
 class SetSetCountSerializer(serializers.Serializer):
     military_serial_number = serializers.CharField(help_text='군번', max_length=15)
+    setcount = serializers.JSONField(help_text='운동별 횟수', default={
+        "운동A": 0,
+        "운동B": 1
+    })
