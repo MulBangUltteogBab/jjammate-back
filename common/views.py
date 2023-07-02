@@ -2,8 +2,9 @@ import json
 import bcrypt
 import jwt
 import logging
+import datetime
 
-from .models import User, UserAdd, UserHealth
+from .models import *
 from exercise.models import ExerciseSelector, SpecialAgentMaximum
 from config.settings import SECRET_KEY
 from rest_framework.views import APIView 
@@ -47,6 +48,7 @@ class Register(APIView):
                 key = user,
                 height = data['height'],
                 weight = data['weight'],
+                bmi = data['weight']/((data['height']/100)**2)
             )
             selector = ExerciseSelector.objects.create(
                 key = user,
@@ -92,3 +94,77 @@ class Login(APIView):
         except KeyError:
             return JsonResponse({'message' : "INVALID_KEYS"}, status=400)
 
+
+class Modify(APIView):
+    @swagger_auto_schema(tags=['User'], request_body=ModifySerializer)
+    @transaction.atomic
+    @csrf_exempt
+    def post(self, request):
+        data = request.data
+        try:
+            if not User.objects.filter(military_serial_number = data['military_serial_number']).exists():
+                return JsonResponse({"message" : "NOT_EXISTS_MILITARY_SERIAL_NUMBER"}, status=400)
+            
+            military_serial_number = data['military_serial_number']
+            user = User.objects.get(military_serial_number = military_serial_number)
+            
+            if "password" in data:
+                user.password = bcrypt.hashpw(
+                    data["password"].encode("UTF-8"), 
+                    bcrypt.gensalt()
+                ).decode("UTF-8")
+                user.save()
+            if "username" in data:
+                UserAdd.objects.get(key=user).update(
+                    username = data['username']
+                )
+            if "department" in data:
+                UserAdd.objects.get(key=user).update(
+                    department = data['department']
+                )
+            if ("height" in data) or ("weight" in data):
+                health = UserHealth.objects.get(key=user)
+                if "height" in data:
+                    health.height = data['height']
+                    health.bmi = health.weight/((data['height']/100)**2)
+                if "weight" in data:
+                    health.weight = data['weight']
+                    health.bmi = data['weight']/((health.height/100)**2)
+                health.save()
+
+            return HttpResponse(status=200)
+            
+        except KeyError:
+            return JsonResponse({"message" : "INVALID_KEYS"}, status=400)
+        
+
+class GetMyInfo(APIView):
+    @swagger_auto_schema(tags=['User'], request_body=GetMyInfoSerializer)
+    @transaction.atomic
+    @csrf_exempt
+    def post(self, request):
+        data = request.data
+        try:
+            military_serial_number = data['military_serial_number']
+            date = datetime.date.today().strftime('%Y-%m-%d')
+            user = User.objects.get(military_serial_number = military_serial_number)
+            add = UserAdd.objects.get(key=user)
+            health = UserHealth.objects.get(key=user)
+            status = UserKcalStatus.objects.get(key=user, date=date)
+            body = {
+                "military_serial_number": military_serial_number,
+                "nickname": add.nickname,
+                "username": add.username,
+                "department": add.department,
+                "sex": add.sex,
+                "age": add.age,
+                "height": health.height,
+                "weight": health.weight,
+                "bmi": health.bmi,
+                "taken": status.taken,
+                "burned": status.burned
+            }
+            return JsonResponse(body, status=200)
+
+        except KeyError:
+            return JsonResponse({"message" : "INVALID_KEYS"}, status=400)
