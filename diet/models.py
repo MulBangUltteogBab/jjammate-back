@@ -1,4 +1,5 @@
 from django.db import models
+from common.models import User
 
 
 class PXFood(models.Model):
@@ -30,3 +31,15 @@ class Nutrition(models.Model):
     protein = models.CharField(max_length=10)
     fat = models.CharField(max_length=10)
     amount = models.CharField(max_length=10)
+
+
+class UserTakenFood(models.Model):
+    key = models.ForeignKey(User, on_delete=models.CASCADE, db_column='key')
+    date = models.DateField()
+    foodlist = models.JSONField()
+    '''
+    {
+        "pxfood": [],
+        "diet": []
+    }
+    '''

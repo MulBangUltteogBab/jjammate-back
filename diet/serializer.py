@@ -24,3 +24,15 @@ class RecommendSerializer(serializers.Serializer):
 
 class GetDietGaugeSerializer(serializers.Serializer):
     military_serial_number = serializers.CharField(help_text='군번', max_length=15)
+
+
+class SetTakenFoodSerializer(serializers.Serializer):
+    military_serial_number = serializers.CharField(help_text='군번', max_length=15)
+    foodlist = serializers.JSONField(help_text='섭취한 전체 음식', default={
+        "pxfood": ["음식1", "음식2"],
+        "diet": ["음식3", "음식4"]
+    })
+
+class GetTakenFoodSerializer(serializers.Serializer):
+    military_serial_number = serializers.CharField(help_text='군번', max_length=15)
+    

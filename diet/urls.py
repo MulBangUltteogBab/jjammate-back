@@ -1,5 +1,5 @@
 from django.urls import path, include
-from .views import StackDiet, GetPXFood, GetDiet, Recommend, StackPXFood, GetGauge
+from .views import *
 
 
 urlpatterns = [
@@ -8,5 +8,7 @@ urlpatterns = [
     path('api/recommend/', Recommend.as_view()),
     path('api/stackdiet/', StackDiet.as_view()),
     path('api/stackpxfood/', StackPXFood.as_view()),
-    path('api/getgauge/', GetGauge.as_view())
+    path('api/getgauge/', GetGauge.as_view()),
+    path('api/gettakenfood/', GetTakenFood.as_view()),
+    path('api/settakenfood/', SetTakenFood.as_view())
 ]

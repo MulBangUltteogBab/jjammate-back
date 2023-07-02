@@ -4,7 +4,7 @@ import jwt
 import datetime
 import logging
 
-from .models import PXFood, Diet, Nutrition
+from .models import *
 from .serializer import *
 from rest_framework.views import APIView 
 from drf_yasg.utils       import swagger_auto_schema
@@ -13,6 +13,8 @@ from config.settings import SECRET_KEY
 from core.webparser import parsePXFood, getDiet, isValidDate, mappingFoodToNutrient, parsePXFoodPicture
 from core.unit import deleteUnit
 from core.recommand import recommand
+
+from common.models import User, UserKcalStatus
 
 from django.http import HttpResponse, JsonResponse
 from django.db import transaction
@@ -216,14 +218,18 @@ class GetDiet(APIView):
     
 
 class GetGauge(APIView):
-    @swagger_auto_schema(tags=['not implement'], request_body=GetDietGaugeSerializer)
+    @swagger_auto_schema(tags=['About Diet'], request_body=GetDietGaugeSerializer)
     @transaction.atomic
     @csrf_exempt
     def post(self, request):
         data = request.data
         try:
             military_serial_number = data['military_serial_number']
-            return JsonResponse({"message" : "Not Implement"}, status=200)
+            user = User.objects.get(military_serial_number = military_serial_number)
+            date = datetime.date.today().strftime('%Y-%m-%d')
+            kcalstatus = UserKcalStatus.objects.get(key=user, date=date)
+            gauge = kcalstatus.taken / 31
+            return JsonResponse({"gauge" : gauge}, status=200)
 
         except KeyError:
             return JsonResponse({"message" : "NO DATA"}, status=400)
@@ -237,7 +243,6 @@ class StackDiet(APIView):
         data = request.data
         try:
             military_number = data['military_number']
-            today = datetime.date.today()
             for n in military_number:
                 logger.info("military_number: {}".format(n))
                 diets = getDiet(n)
@@ -324,6 +329,67 @@ class StackPXFood(APIView):
                     ).save()
 
             return JsonResponse({"message" : "Done"}, status=200)
+                    
+        except KeyError:
+            return JsonResponse({"message" : "NO DATA"}, status=400)
+
+
+class SetTakenFood(APIView):
+    @swagger_auto_schema(tags=['About Diet'], request_body=SetTakenFoodSerializer)
+    @transaction.atomic
+    @csrf_exempt
+    def post(self, request):
+        data = request.data
+        try:
+            military_serial_number = data['military_serial_number']
+            foodlist = data['foodlist']
+            user = User.objects.get(military_serial_number = military_serial_number)
+            date = datetime.date.today().strftime('%Y-%m-%d')
+            if not UserTakenFood.objects.filter(key=user, date=date).exists():
+                UserTakenFood.objects.create(
+                    key = user,
+                    date = date,
+                    foodlist = {
+                        "pxfood":[],
+                        "diet":[]
+                    }
+                )
+            taken = 0
+            for key in foodlist:
+                for foodname in foodlist[key]:
+                    taken += int(deleteUnit(Nutrition.objects.get(name=foodname).calorie))
+            
+            UserKcalStatus.objects.get(key=user, date=date).update(taken=taken)
+            UserTakenFood.objects.get(key=user, date=date).update(foodlist=foodlist)
+
+            return JsonResponse({"message" : "Done"}, status=200)
+                    
+        except KeyError:
+            return JsonResponse({"message" : "NO DATA"}, status=400)
+
+
+class GetTakenFood(APIView):
+    @swagger_auto_schema(tags=['About Diet'], request_body=GetTakenFoodSerializer)
+    @transaction.atomic
+    @csrf_exempt
+    def post(self, request):
+        data = request.data
+        try:
+            military_serial_number = data['military_serial_number']
+            user = User.objects.get(military_serial_number = military_serial_number)
+            date = datetime.date.today().strftime('%Y-%m-%d')
+            if not UserTakenFood.objects.filter(key=user, date=date).exists():
+                UserTakenFood.objects.create(
+                    key = user,
+                    date = date,
+                    foodlist = {
+                        "pxfood":[],
+                        "diet":[]
+                    }
+                )
+            body = UserTakenFood.objects.get(key=user, date=date).foodlist
+
+            return JsonResponse(body, status=200)
                     
         except KeyError:
             return JsonResponse({"message" : "NO DATA"}, status=400)
