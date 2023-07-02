@@ -4,7 +4,7 @@ import jwt
 import datetime
 import logging
 
-from .models import ExerciseMission, ExerciseSelector, SpecialAgentMaximum
+from .models import *
 from common.models import User, UserKcalStatus
 
 from .serializer import *
@@ -33,7 +33,7 @@ class GetGauge(APIView):
             date = datetime.date.today().strftime('%Y-%m-%d')
             kcalstatus = UserKcalStatus.objects.get(key=user, date=date)
             gauge = kcalstatus.burned / 6
-            return JsonResponse({"message" : gauge}, status=200)
+            return JsonResponse({"gauge" : gauge}, status=200)
 
         except KeyError:
             return JsonResponse({"message" : "NO DATA"}, status=400)
