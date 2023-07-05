@@ -3,8 +3,11 @@ import bcrypt
 import jwt
 import datetime
 import logging
+from random import *
 
 from .models import *
+from common.models import *
+
 from .serializer import *
 from rest_framework.views import APIView 
 from drf_yasg.utils       import swagger_auto_schema
@@ -13,8 +16,6 @@ from config.settings import SECRET_KEY
 from core.webparser import parsePXFood, getDiet, isValidDate, mappingFoodToNutrient, parsePXFoodPicture
 from core.unit import deleteUnit
 from core.recommand import recommand
-
-from common.models import User, UserKcalStatus
 
 from django.http import HttpResponse, JsonResponse
 from django.db import transaction
@@ -86,6 +87,26 @@ class Recommend(APIView):
                             "amount": nutr.amount,
                             "image": pxfood.image.url
                         })
+            
+            index = []
+            for i in range(0, 3-len(body['pxfoods'])):
+                idx = randint(0, pxfoods.count())
+                while idx in index:
+                    idx = randint(0, pxfoods.count())
+                index.append(idx)
+
+            for i in index:
+                nutr = Nutrition.objects.filter(name = pxfood[i].name)
+                body['pxfoods'].append({
+                            "name": pxfood[i].name,
+                            "calorie": nutr.calorie,
+                            "carbohydrate": nutr.carbohydrate,
+                            "protein": nutr.protein,
+                            "fat": nutr.fat,
+                            "amount": nutr.amount,
+                            "image": pxfood[i].image.url
+                        })
+                
             return JsonResponse(body, status=200)
 
         except:
@@ -133,6 +154,47 @@ class GetPXFood(APIView):
         except KeyError:
             return JsonResponse({"message" : "NO DATA"}, status=400)
 
+    
+class GetPxFoodList(APIView):
+    @swagger_auto_schema(tags=['About Diet'], request_body=GetPXFoodSerializer)
+    @transaction.atomic
+    @csrf_exempt
+    def post(self, request):
+        data = request.data
+        try:
+            begin = data["begin"]
+            end = data["end"]
+            pxfoods = PXFood.objects.all().order_by('id')[begin:end]
+            body = {
+                "pxfoods": []
+            }
+            for pxfood in pxfoods:
+                nutr = Nutrition.objects.filter(name = pxfood.name)
+                if not nutr.exists():
+                    body['pxfoods'].append({
+                        "name": pxfood.name,
+                        "calorie": "",
+                        "carbohydrate": "",
+                        "protein": "",
+                        "fat": "",
+                        "amount":"",
+                        "image": pxfood.image.url
+                    })
+                else:
+                    nutr = Nutrition.objects.get(name = pxfood.name)
+                    body['pxfoods'].append({
+                        "name": pxfood.name,
+                        "calorie": nutr.calorie,
+                        "carbohydrate": nutr.carbohydrate,
+                        "protein": nutr.protein,
+                        "fat": nutr.fat,
+                        "amount": nutr.amount,
+                        "image": pxfood.image.url
+                    })
+            return JsonResponse(body, status=200)
+
+        except KeyError:
+            return JsonResponse({"message" : "NO DATA"}, status=400)
 
 class GetDiet(APIView):
     @swagger_auto_schema(tags=['About Diet'], request_body=GetDietSerializer)

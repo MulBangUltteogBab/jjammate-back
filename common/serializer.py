@@ -30,3 +30,11 @@ class ModifySerializer(serializers.Serializer):
 
 class GetMyInfoSerializer(serializers.Serializer):
     military_serial_number = serializers.CharField(help_text='군번', max_length=15)
+
+
+class GetKcalStatusSerializer(serializers.Serializer):
+    military_serial_number = serializers.CharField(help_text='군번', max_length=15)
+
+
+class GetNutritionStatusSerializer(serializers.Serializer):
+    military_serial_number = serializers.CharField(help_text='군번', max_length=15)

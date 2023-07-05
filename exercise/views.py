@@ -3,9 +3,10 @@ import bcrypt
 import jwt
 import datetime
 import logging
+from random import *
 
 from .models import *
-from common.models import User, UserKcalStatus
+from common.models import *
 
 from .serializer import *
 from rest_framework.views import APIView 
@@ -58,51 +59,57 @@ class GetExercise(APIView):
                 ).save
             if ExerciseMission.objects.filter(key=user, date=date).exists():
                 mission = ExerciseMission.objects.get(key=user, date=date)
-                exercise = getJsonValue("exercise", "exercise.json")
-                info = exercise[mission.option]
-                return JsonResponse(info, status=200)
+                exercise = mission.exercise
+                return JsonResponse(exercise, status=200)
 
-            number = ExerciseSelector.objects.get(key=user).number
-            part = getJsonValue("part", "exercise.json")
             exercise = getJsonValue("exercise", "exercise.json")
-            option = part[number % 6]
-            info = exercise[option]
+            for part in exercise:
+                options = exercise[part]["options"].keys()
+                idx = randint(0, len(options))
+                selected = exercise[part]["options"][options[idx]]
+                exercise[part]["options"] = {}
+                exercise[part]["options"][options[idx]] = selected
 
             setcount = {}
-            for key in info["options"]:
-                setcount[key] = 0
+            for part in exercise:
+                setcount[part] = 0
 
             mission = ExerciseMission.objects.create(
                 key = user,
-                option = option,
+                date = date,
+                exercise = exercise,
                 setcount = setcount,
-                date = date
             ).save()
 
-            return JsonResponse(info, status=200)
+            selector = UserExerciseSelector.objects.get(key=user)
+            selector.number += 1
+            selector.save()
+
+            return JsonResponse(exercise, status=200)
 
         except KeyError:
             return JsonResponse({"message" : "NO DATA"}, status=400)
 
 
-class GetMaximumTime(APIView):
-    @swagger_auto_schema(tags=['About Exercise'], request_body=GetMaximumTimeSerializer)
+class GetRecordTime(APIView):
+    @swagger_auto_schema(tags=['About Exercise'], request_body=GetRecordTimeSerializer)
     @transaction.atomic
     @csrf_exempt
     def post(self, request):
         data = request.data
         try:
             military_serial_number = data['military_serial_number']
+            date = datetime.date.today().strftime('%Y-%m-%d')
             user = User.objects.get(military_serial_number = military_serial_number)
+            record = SpecialAgentRecord.objects.filter(key=user, date=date).order_by('-id')
             body = {
-                "run": 0,
-                "pushup": 0,
-                "situp": 0
+                "run": record[0].run,
+                "runresult": record[0].runresult,
+                "pushup": record[0].pushup,
+                "pushupresult": record[0].pushupresult,
+                "situp": record[0].situp,
+                "situpresult": record[0].situpresult
             }
-            maximum = SpecialAgentMaximum.objects.get(key=user)
-            body["run"] = maximum.run
-            body["pushup"] = maximum.pushup
-            body["situp"] = maximum.situp
             return JsonResponse(body, status=200)
 
         except KeyError:
@@ -130,8 +137,8 @@ class GetSetCount(APIView):
             return JsonResponse({"message" : "There is no ExerciseMission"}, status=400)
 
 
-class SetMaximumTime(APIView):
-    @swagger_auto_schema(tags=['About Exercise'], request_body=SetMaximumTimeSerializer)
+class SetRecordTime(APIView):
+    @swagger_auto_schema(tags=['About Exercise'], request_body=SetRecordTimeSerializer)
     @transaction.atomic
     @csrf_exempt
     def post(self, request):
@@ -139,13 +146,16 @@ class SetMaximumTime(APIView):
         try:
             military_serial_number = data['military_serial_number']
             user = User.objects.get(military_serial_number = military_serial_number)
-            run = data['run']
-            pushup = data['pushup']
-            situp = data['situp']
-            SpecialAgentMaximum.objects.get(key=user).update(
-                run = run,
-                pushup = pushup,
-                situp = situp
+            useradd = UserAdd.objects.get(key=user)
+            date = datetime.date.today().strftime('%Y-%m-%d')
+            SpecialAgentRecord.objects.create(
+                date = date,
+                run = data['run'],
+                runresult = ratingOfRun(data['run'], useradd.age),
+                pushup = data['pushup'],
+                pushupresult = ratingOfPushup(data['pushup'], useradd.age),
+                situp = data['situp'],
+                situpresult = ratingOfSitup(data['situp'], useradd.age)
             )
             return JsonResponse({"message" : "Done"}, status=200)
 
@@ -177,8 +187,13 @@ class SetSetCount(APIView):
             mission = ExerciseMission.objects.get(key=user, date=date)
             exercise = getJsonValue("exercise", "exercise.json")
             kcalstatus = UserKcalStatus.objects.get(key=user, date=date)
-            for count in setcount.values() :
-                kcalstatus.burned = exercise[mission.option]["burned"] * count
+            total = 0
+            for done in setcount:
+                for part in exercise:
+                    for option in exercise[part]["options"]:
+                        if option == done:
+                            total += exercise[part]["burned"] * setcount[done]
+            kcalstatus.burned = total
             kcalstatus.save()
             return JsonResponse({"message" : "Done"}, status=200)
 
@@ -187,3 +202,41 @@ class SetSetCount(APIView):
 
         except:
             return JsonResponse({"message" : "There is no ExerciseMission"}, status=400)
+
+
+class GetWeekRecordTime(APIView):
+    @swagger_auto_schema(tags=['About Exercise'], request_body=GetWeekRecordTimeSerializer)
+    @transaction.atomic
+    @csrf_exempt
+    def post(self, request):
+        data = request.data
+        try:
+            military_serial_number = data['military_serial_number']
+            user = User.objects.get(military_serial_number = military_serial_number)
+            today = datetime.date.today()
+            body = {
+                "record": {}
+            }
+            for i in range(0, 7):
+                totalpushup = 0
+                totalsitup = 0
+                totalrun = 0
+                date = today - datetime.timedelta(days=i + 1)
+                date = date.strftime('%Y-%m-%d')
+                records = SpecialAgentRecord.objects.filter(key=user, date=date)
+                for record in records:
+                    totalpushup += record.pushup
+                    totalsitup += record.situp
+                    time = record.run.split(':')
+                    totalrun += int(time[0]) * 60
+                    totalrun += int(time[1])
+                totalrun = totalrun // records.count()
+                body["record"][date] = {
+                    "pushup": totalpushup / records.count(),
+                    "situp": totalsitup / records.count(),
+                    "run": "%d:%d".format(totalrun//60, totalrun%60)
+                }
+            return JsonResponse(body, status=200)
+
+        except KeyError:
+            return JsonResponse({"message" : "NO DATA"}, status=400)

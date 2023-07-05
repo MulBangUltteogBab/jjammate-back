@@ -28,6 +28,31 @@ class UserHealth(models.Model):
 
 class UserKcalStatus(models.Model):
     key = models.ForeignKey(User, on_delete=models.CASCADE, db_column='key')
+    date = models.DateField()
     burned = models.FloatField()
     taken = models.FloatField()
+
+
+class UserNutritionStatus(models.Model):
+    key = models.ForeignKey(User, on_delete=models.CASCADE, db_column='key')
     date = models.DateField()
+    carbohydrate = models.FloatField()
+    protein = models.FloatField()
+    fat = models.FloatField()
+
+
+class UserTakenFood(models.Model):
+    key = models.ForeignKey(User, on_delete=models.CASCADE, db_column='key')
+    date = models.DateField()
+    foodlist = models.JSONField()
+    '''
+    {
+        "pxfood": [],
+        "diet": []
+    }
+    '''
+
+
+class UserExerciseSelector(models.Model):
+    key = models.ForeignKey(User, on_delete=models.CASCADE, db_column='key')
+    number = models.SmallIntegerField()

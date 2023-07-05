@@ -13,6 +13,7 @@ from rest_framework.views import APIView
 from drf_yasg.utils       import swagger_auto_schema
 from drf_yasg             import openapi
 from .serializer import *
+from core.jsonparser import getJsonValue
 
 from django.http import HttpResponse, JsonResponse
 from django.db import transaction
@@ -54,15 +55,9 @@ class Register(APIView):
                 weight = data['weight'],
                 bmi = data['weight']/((data['height']/100)**2)
             )
-            selector = ExerciseSelector.objects.create(
+            selector = UserExerciseSelector.objects.create(
                 key = user,
                 number = 0
-            )
-            maximum = SpecialAgentMaximum.objects.create(
-                key = user,
-                run = "00:00",
-                pushup = "0",
-                situp = "0"
             )
             kcalstatus = UserKcalStatus.objects.create(
                 key = user,
@@ -70,11 +65,20 @@ class Register(APIView):
                 taken = 0,
                 date = date
             )
+            nutritionstatus = UserNutritionStatus.objects.create(
+                key = user,
+                date = date,
+                carbohydrate = 0,
+                protein = 0,
+                fat = 0
+            )
             user.save()
             add.save()
             health.save()
             selector.save()
-            maximum.save()
+            kcalstatus.save()
+            nutritionstatus.save()
+
 
             return HttpResponse(status=200)
             
@@ -95,6 +99,7 @@ class Login(APIView):
                 userhealth = UserHealth.objects.get(key=user)
                 if bcrypt.checkpw(data['password'].encode('UTF-8'), user.password.encode('UTF-8')):
                     token = jwt.encode({
+                        'key': user.key,
                         'military_serial_number': user.military_serial_number,
                         'username': useradd.username,
                         'department': useradd.department,
@@ -167,7 +172,6 @@ class GetMyInfo(APIView):
             user = User.objects.get(military_serial_number = military_serial_number)
             add = UserAdd.objects.get(key=user)
             health = UserHealth.objects.get(key=user)
-            status = UserKcalStatus.objects.get(key=user, date=date)
             body = {
                 "military_serial_number": military_serial_number,
                 # "nickname": add.nickname,
@@ -177,9 +181,61 @@ class GetMyInfo(APIView):
                 "age": add.age,
                 "height": health.height,
                 "weight": health.weight,
-                "bmi": health.bmi,
+                "bmi": health.bmi
+            }
+            return JsonResponse(body, status=200)
+
+        except KeyError:
+            return JsonResponse({"message" : "INVALID_KEYS"}, status=400)
+
+
+class GetKcalStatus(APIView):
+    @swagger_auto_schema(tags=['User'], request_body=GetKcalStatusSerializer)
+    @transaction.atomic
+    @csrf_exempt
+    def post(self, request):
+        data = request.data
+        try:
+            military_serial_number = data['military_serial_number']
+            date = datetime.date.today().strftime('%Y-%m-%d')
+            user = User.objects.get(military_serial_number = military_serial_number)
+            status = UserKcalStatus.objects.get(key=user, date=date)
+            
+            body = {
                 "taken": status.taken,
-                "burned": status.burned
+                "burned": status.burned,
+                "remain": 3100 - status.taken
+            }
+            return JsonResponse(body, status=200)
+
+        except KeyError:
+            return JsonResponse({"message" : "INVALID_KEYS"}, status=400)
+
+
+class GetNutritionStatus(APIView):
+    @swagger_auto_schema(tags=['User'], request_body=GetNutritionStatusSerializer)
+    @transaction.atomic
+    @csrf_exempt
+    def post(self, request):
+        data = request.data
+        try:
+            military_serial_number = data['military_serial_number']
+            date = datetime.date.today().strftime('%Y-%m-%d')
+            user = User.objects.get(military_serial_number = military_serial_number)
+            nutritionstatus = UserNutritionStatus.objects.get(key=user, date=date)
+            total = getJsonValue('total', 'nutrition.json')
+            
+            body = {
+                "taken": {
+                    "carbohydrate": nutritionstatus.carbohydrate,
+                    "protein": nutritionstatus.protein,
+                    "fat": nutritionstatus.fat,
+                },
+                "percent": {
+                    "carbohydrate": nutritionstatus.carbohydrate/total['carbohydrate']*100,
+                    "protein": nutritionstatus.protein/total['protein']*100,
+                    "fat": nutritionstatus.fat/total['fat']*100,
+                }
             }
             return JsonResponse(body, status=200)
 

@@ -38,7 +38,6 @@ imagedir = 'image/'
 
 options = webdriver.ChromeOptions()
 options.add_argument('--headless')
-options.add_argument("--remote-debugging-port=9222")
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 driver.implicitly_wait(5)
 

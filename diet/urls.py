@@ -10,5 +10,6 @@ urlpatterns = [
     path('api/stackpxfood/', StackPXFood.as_view()),
     path('api/getgauge/', GetGauge.as_view()),
     path('api/gettakenfood/', GetTakenFood.as_view()),
-    path('api/settakenfood/', SetTakenFood.as_view())
+    path('api/settakenfood/', SetTakenFood.as_view()),
+    path('api/getpxfoodlist/', GetPxFoodList.as_view()),
 ]

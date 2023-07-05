@@ -2,6 +2,7 @@
     "part": ["가슴", "삼두", "등", "이두", "하체", "어깨"],
     "exercise" : {
         "가슴":{
+            "per1set": 10,
             "part": "가슴",
             "burned":29.4,
             "options":{
@@ -39,6 +40,7 @@
             }
         },
         "삼두":{
+            "per1set": 10,
             "part": "삼두",
             "burned":25.7,
             "options":{
@@ -72,6 +74,7 @@
             }
         },
         "등":{
+            "per1set": 10,
             "part": "등",
             "burned":29.4,
             "options":{
@@ -103,6 +106,7 @@
             }
         },
         "이두":{
+            "per1set": 10,
             "part": "이두",
             "burned":22.1,
             "options":{
@@ -134,6 +138,7 @@
             }
         },
         "하체":{
+            "per1set": 10,
             "part": "하체",
             "burned":25.7,
             "options":{
@@ -171,6 +176,7 @@
             }
         },
         "어깨":{
+            "per1set": 10,
             "part": "어깨",
             "burned":29.4,
             "options":{
