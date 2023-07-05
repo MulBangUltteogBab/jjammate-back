@@ -28,8 +28,8 @@ class Register(APIView):
         try:
             if User.objects.filter(military_serial_number = data['military_serial_number']).exists():
                 return JsonResponse({"message" : "EXISTS_MILITARY_SERIAL_NUMBER"}, status=400)
-            if UserAdd.objects.filter(nickname = data['nickname']).exists():
-                return JsonResponse({"message" : "EXISTS_NICKNAME"}, status=400)
+            # if UserAdd.objects.filter(nickname = data['nickname']).exists():
+            #     return JsonResponse({"message" : "EXISTS_NICKNAME"}, status=400)
             
             date = datetime.date.today().strftime('%Y-%m-%d')
             user = User.objects.create(
@@ -41,11 +41,12 @@ class Register(APIView):
             )
             add = UserAdd.objects.create(
                 key = user,
-                nickname = data['nickname'],
+                # nickname = data['nickname'],
                 username = data['username'],
                 department = data['department'],
                 sex = data['sex'],
                 age = data['age'],
+                agreement = data["agreement"]
             )
             health = UserHealth.objects.create(
                 key = user,
@@ -87,17 +88,24 @@ class Login(APIView):
     @csrf_exempt
     def post(self, request):
         data = request.data
-
         try:
             if User.objects.filter(military_serial_number = data["military_serial_number"]).exists():
                 user = User.objects.get(military_serial_number = data["military_serial_number"])
-
+                useradd = UserAdd.objects.get(key=user)
+                userhealth = UserHealth.objects.get(key=user)
                 if bcrypt.checkpw(data['password'].encode('UTF-8'), user.password.encode('UTF-8')):
-                    token = jwt.encode({'user' : user.key}, SECRET_KEY, algorithm='HS256')
+                    token = jwt.encode({
+                        'military_serial_number': user.military_serial_number,
+                        'username': useradd.username,
+                        'department': useradd.department,
+                        'sex': useradd.sex,
+                        'age': useradd.age,
+                        'height': userhealth.height,
+                        'weight': userhealth.weight,
+                        'bmi': userhealth.bmi
+                        }, SECRET_KEY, algorithm='HS256')
                     return JsonResponse({"token" : token}, status=200)
-
                 return HttpResponse(status=401)
-
             return HttpResponse(status=400)
         
         except KeyError:
@@ -162,7 +170,7 @@ class GetMyInfo(APIView):
             status = UserKcalStatus.objects.get(key=user, date=date)
             body = {
                 "military_serial_number": military_serial_number,
-                "nickname": add.nickname,
+                # "nickname": add.nickname,
                 "username": add.username,
                 "department": add.department,
                 "sex": add.sex,
