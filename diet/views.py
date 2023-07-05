@@ -32,6 +32,8 @@ class Recommend(APIView):
         data = request.data
         try:
             military_number = data['military_number']
+            user = User.objects.get(military_number = military_number)
+            userhealth = UserHealth.objects.get(key=user)
             date = datetime.date.today().strftime('%Y-%m-%d')
             diet = Diet.objects.get(military_number = military_number, date = date)
             body = {
@@ -77,7 +79,7 @@ class Recommend(APIView):
             pxfoods = PXFood.objects.all()
             for pxfood in pxfoods:
                 nutr = Nutrition.objects.filter(name = pxfood.name)
-                if recommand(nutr, total):
+                if recommand(nutr, total, userhealth.totalkcal):
                     body['pxfoods'].append({
                             "name": pxfood.name,
                             "calorie": nutr.calorie,
@@ -288,9 +290,10 @@ class GetGauge(APIView):
         try:
             military_serial_number = data['military_serial_number']
             user = User.objects.get(military_serial_number = military_serial_number)
+            userhealth = UserHealth.objects.get(key=user)
             date = datetime.date.today().strftime('%Y-%m-%d')
             kcalstatus = UserKcalStatus.objects.get(key=user, date=date)
-            gauge = kcalstatus.taken / 31
+            gauge = kcalstatus.taken / userhealth.totalkcal * 100
             return JsonResponse({"gauge" : gauge}, status=200)
 
         except KeyError:

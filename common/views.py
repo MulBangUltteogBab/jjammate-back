@@ -33,6 +33,7 @@ class Register(APIView):
             #     return JsonResponse({"message" : "EXISTS_NICKNAME"}, status=400)
             
             date = datetime.date.today().strftime('%Y-%m-%d')
+            bmi = data['weight']/((data['height']/100)**2)
             user = User.objects.create(
                 military_serial_number 	 = data['military_serial_number'], 
                 password = bcrypt.hashpw(
@@ -53,7 +54,8 @@ class Register(APIView):
                 key = user,
                 height = data['height'],
                 weight = data['weight'],
-                bmi = data['weight']/((data['height']/100)**2)
+                bmi = bmi,
+                totalkcal = 3100 - (bmi - 20.75) * 43.3
             )
             selector = UserExerciseSelector.objects.create(
                 key = user,
@@ -146,12 +148,21 @@ class Modify(APIView):
                 )
             if ("height" in data) or ("weight" in data):
                 health = UserHealth.objects.get(key=user)
-                if "height" in data:
+                if "height" in data and "weight" in data:
                     health.height = data['height']
-                    health.bmi = health.weight/((data['height']/100)**2)
-                if "weight" in data:
+                    bmi = data['weight']/((data['height']/100)**2)
+                    health.bmi = bmi
+                    health.totalkcal = 3100 - (bmi - 20.75) * 43.3
+                if "height" in data and "weight" not in data:
+                    health.height = data['height']
+                    bmi = health.weight/((data['height']/100)**2)
+                    health.bmi = bmi
+                    health.totalkcal = 3100 - (bmi - 20.75) * 43.3
+                if "weight" in data and "height" not in data:
                     health.weight = data['weight']
-                    health.bmi = data['weight']/((health.height/100)**2)
+                    bmi = data['weight']/((health.height/100)**2)
+                    health.bmi = bmi
+                    health.totalkcal = 3100 - (bmi - 20.75) * 43.3
                 health.save()
 
             return HttpResponse(status=200)
@@ -200,11 +211,12 @@ class GetKcalStatus(APIView):
             date = datetime.date.today().strftime('%Y-%m-%d')
             user = User.objects.get(military_serial_number = military_serial_number)
             status = UserKcalStatus.objects.get(key=user, date=date)
+            userhealth = UserHealth.objects.get(key=user)
             
             body = {
                 "taken": status.taken,
                 "burned": status.burned,
-                "remain": 3100 - status.taken
+                "remain": userhealth.totalkcal - status.taken
             }
             return JsonResponse(body, status=200)
 

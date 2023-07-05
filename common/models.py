@@ -24,6 +24,7 @@ class UserHealth(models.Model):
     height = models.IntegerField()
     weight = models.IntegerField()
     bmi = models.FloatField()
+    totalkcal = models.IntegerField()
 
 
 class UserKcalStatus(models.Model):

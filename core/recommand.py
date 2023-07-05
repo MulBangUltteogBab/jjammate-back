@@ -1,7 +1,7 @@
 from .unit import deleteUnit
 
-def recommand(pxfood, total):
-    if (total['calorie'] + int(deleteUnit(pxfood.calorie)) >= 3100) and nutrientRatio(pxfood, total):
+def recommand(pxfood, total, totalkcal):
+    if (total['calorie'] + int(deleteUnit(pxfood.calorie)) >= totalkcal) and nutrientRatio(pxfood, total):
         return True
     return False
 
