@@ -5,7 +5,9 @@ import logging
 import datetime
 
 from .models import *
-from exercise.models import ExerciseSelector, SpecialAgentMaximum
+from exercise.models import *
+from diet.models import *
+
 from config.settings import SECRET_KEY
 from rest_framework.views import APIView 
 from drf_yasg.utils       import swagger_auto_schema
@@ -29,6 +31,7 @@ class Register(APIView):
             if UserAdd.objects.filter(nickname = data['nickname']).exists():
                 return JsonResponse({"message" : "EXISTS_NICKNAME"}, status=400)
             
+            date = datetime.date.today().strftime('%Y-%m-%d')
             user = User.objects.create(
                 military_serial_number 	 = data['military_serial_number'], 
                 password = bcrypt.hashpw(
@@ -59,6 +62,12 @@ class Register(APIView):
                 run = "00:00",
                 pushup = "0",
                 situp = "0"
+            )
+            kcalstatus = UserKcalStatus.objects.create(
+                key = user,
+                burned = 0,
+                taken = 0,
+                date = date
             )
             user.save()
             add.save()

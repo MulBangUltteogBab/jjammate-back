@@ -49,7 +49,14 @@ class GetExercise(APIView):
             military_serial_number = data['military_serial_number']
             user = User.objects.get(military_serial_number = military_serial_number)
             date = datetime.date.today().strftime('%Y-%m-%d')
-            if ExerciseMission.objects.filter(key=user, date=date).exist():
+            if not UserKcalStatus.objects.filter(key=user, date=date).exists():
+                UserKcalStatus.objects.create(
+                    key = user,
+                    burned = 0,
+                    taken = 0,
+                    date = date
+                ).save
+            if ExerciseMission.objects.filter(key=user, date=date).exists():
                 mission = ExerciseMission.objects.get(key=user, date=date)
                 exercise = getJsonValue("exercise", "exercise.json")
                 info = exercise[mission.option]
@@ -57,15 +64,21 @@ class GetExercise(APIView):
 
             number = ExerciseSelector.objects.get(key=user).number
             part = getJsonValue("part", "exercise.json")
+            exercise = getJsonValue("exercise", "exercise.json")
             option = part[number % 6]
+            info = exercise[option]
+
+            setcount = {}
+            for key in info["options"]:
+                setcount[key] = 0
+
             mission = ExerciseMission.objects.create(
                 key = user,
                 option = option,
-                setcount = 0,
+                setcount = setcount,
                 date = date
             ).save()
-            exercise = getJsonValue("exercise", "exercise.json")
-            info = exercise[option]
+
             return JsonResponse(info, status=200)
 
         except KeyError:
