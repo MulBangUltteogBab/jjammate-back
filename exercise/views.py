@@ -4,6 +4,7 @@ import jwt
 import datetime
 import logging
 from random import *
+from pytz import timezone
 
 from .models import *
 from common.models import *
@@ -31,13 +32,16 @@ class GetGauge(APIView):
         try:
             military_serial_number = data['military_serial_number']
             user = User.objects.get(military_serial_number = military_serial_number)
-            date = datetime.date.today().strftime('%Y-%m-%d')
+            date = datetime.datetime.now(timezone('Asia/Seoul')).strftime('%Y-%m-%d')
             kcalstatus = UserKcalStatus.objects.get(key=user, date=date)
             gauge = kcalstatus.burned / 6
             return JsonResponse({"gauge" : gauge}, status=200)
 
         except KeyError:
-            return JsonResponse({"message" : "NO DATA"}, status=400)
+            return JsonResponse({"message" : "받지 못한 데이터가 존재합니다."}, status=400)
+
+        except ObjectDoesNotExist:
+            return JsonResponse({"message" : "데이터가 존재하지 않습니다."}, status=400)
 
 
 class GetExercise(APIView):
@@ -49,7 +53,7 @@ class GetExercise(APIView):
         try:
             military_serial_number = data['military_serial_number']
             user = User.objects.get(military_serial_number = military_serial_number)
-            date = datetime.date.today().strftime('%Y-%m-%d')
+            date = datetime.datetime.now(timezone('Asia/Seoul')).strftime('%Y-%m-%d')
             if not UserKcalStatus.objects.filter(key=user, date=date).exists():
                 UserKcalStatus.objects.create(
                     key = user,
@@ -88,7 +92,10 @@ class GetExercise(APIView):
             return JsonResponse(exercise, status=200)
 
         except KeyError:
-            return JsonResponse({"message" : "NO DATA"}, status=400)
+            return JsonResponse({"message" : "받지 못한 데이터가 존재합니다."}, status=400)
+
+        except ObjectDoesNotExist:
+            return JsonResponse({"message" : "데이터가 존재하지 않습니다."}, status=400)
 
 
 class GetRecordTime(APIView):
@@ -99,7 +106,7 @@ class GetRecordTime(APIView):
         data = request.data
         try:
             military_serial_number = data['military_serial_number']
-            date = datetime.date.today().strftime('%Y-%m-%d')
+            date = datetime.datetime.now(timezone('Asia/Seoul')).strftime('%Y-%m-%d')
             user = User.objects.get(military_serial_number = military_serial_number)
             record = SpecialAgentRecord.objects.filter(key=user, date=date).order_by('-id')
             body = {
@@ -113,7 +120,10 @@ class GetRecordTime(APIView):
             return JsonResponse(body, status=200)
 
         except KeyError:
-            return JsonResponse({"message" : "KeyError"}, status=400)
+            return JsonResponse({"message" : "받지 못한 데이터가 존재합니다."}, status=400)
+
+        except ObjectDoesNotExist:
+            return JsonResponse({"message" : "데이터가 존재하지 않습니다."}, status=400)
 
 
 # changeSet
@@ -126,15 +136,15 @@ class GetSetCount(APIView):
         try:
             military_serial_number = data['military_serial_number']
             user = User.objects.get(military_serial_number = military_serial_number)
-            date = datetime.date.today().strftime('%Y-%m-%d')
+            date = datetime.datetime.now(timezone('Asia/Seoul')).strftime('%Y-%m-%d')
             mission = ExerciseMission.objects.get(key = user, date = date)
             return JsonResponse(mission.setcount, status=200)
 
         except KeyError:
-            return JsonResponse({"message" : "Key Error"}, status=400)
-    
-        except:
-            return JsonResponse({"message" : "There is no ExerciseMission"}, status=400)
+            return JsonResponse({"message" : "받지 못한 데이터가 존재합니다."}, status=400)
+
+        except ObjectDoesNotExist:
+            return JsonResponse({"message" : "데이터가 존재하지 않습니다."}, status=400)
 
 
 class SetRecordTime(APIView):
@@ -147,7 +157,7 @@ class SetRecordTime(APIView):
             military_serial_number = data['military_serial_number']
             user = User.objects.get(military_serial_number = military_serial_number)
             useradd = UserAdd.objects.get(key=user)
-            date = datetime.date.today().strftime('%Y-%m-%d')
+            date = datetime.datetime.now(timezone('Asia/Seoul')).strftime('%Y-%m-%d')
             SpecialAgentRecord.objects.create(
                 date = date,
                 run = data['run'],
@@ -157,10 +167,13 @@ class SetRecordTime(APIView):
                 situp = data['situp'],
                 situpresult = ratingOfSitup(data['situp'], useradd.age)
             )
-            return JsonResponse({"message" : "Done"}, status=200)
+            return JsonResponse({"message" : "새로운 기록 갱신 성공"}, status=200)
 
         except KeyError:
-            return JsonResponse({"message" : "NO DATA"}, status=400)
+            return JsonResponse({"message" : "받지 못한 데이터가 존재합니다."}, status=400)
+
+        except ObjectDoesNotExist:
+            return JsonResponse({"message" : "데이터가 존재하지 않습니다."}, status=400)
 
 
 class SetSetCount(APIView):
@@ -173,7 +186,7 @@ class SetSetCount(APIView):
             military_serial_number = data['military_serial_number']
             setcount = data['setcount']
             user = User.objects.get(military_serial_number = military_serial_number)
-            date = datetime.date.today().strftime('%Y-%m-%d')
+            date = datetime.datetime.now(timezone('Asia/Seoul')).strftime('%Y-%m-%d')
             ExerciseMission.objects.get(key = user, date = date).update(
                 setcount = setcount
             )
@@ -195,13 +208,13 @@ class SetSetCount(APIView):
                             total += exercise[part]["burned"] * setcount[done]
             kcalstatus.burned = total
             kcalstatus.save()
-            return JsonResponse({"message" : "Done"}, status=200)
+            return JsonResponse({"message" : "세트 수행 횟수 갱신 완료"}, status=200)
 
         except KeyError:
-            return JsonResponse({"message" : "NO DATA"}, status=400)
+            return JsonResponse({"message" : "받지 못한 데이터가 존재합니다."}, status=400)
 
-        except:
-            return JsonResponse({"message" : "There is no ExerciseMission"}, status=400)
+        except ObjectDoesNotExist:
+            return JsonResponse({"message" : "데이터가 존재하지 않습니다."}, status=400)
 
 
 class GetWeekRecordTime(APIView):
@@ -213,7 +226,7 @@ class GetWeekRecordTime(APIView):
         try:
             military_serial_number = data['military_serial_number']
             user = User.objects.get(military_serial_number = military_serial_number)
-            today = datetime.date.today()
+            today = datetime.datetime.now(timezone('Asia/Seoul'))
             body = {
                 "record": {}
             }
@@ -239,4 +252,7 @@ class GetWeekRecordTime(APIView):
             return JsonResponse(body, status=200)
 
         except KeyError:
-            return JsonResponse({"message" : "NO DATA"}, status=400)
+            return JsonResponse({"message" : "받지 못한 데이터가 존재합니다."}, status=400)
+
+        except ObjectDoesNotExist:
+            return JsonResponse({"message" : "데이터가 존재하지 않습니다."}, status=400)

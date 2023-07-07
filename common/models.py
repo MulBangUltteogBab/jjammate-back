@@ -57,3 +57,14 @@ class UserTakenFood(models.Model):
 class UserExerciseSelector(models.Model):
     key = models.ForeignKey(User, on_delete=models.CASCADE, db_column='key')
     number = models.SmallIntegerField()
+
+
+class UserRecommendPxFood(models.Model):
+    key = models.ForeignKey(User, on_delete=models.CASCADE, db_column='key')
+    date = models.DateField()
+    pxfoods = models.JSONField()
+    '''
+    {
+        "pxfood": []
+    }
+    '''

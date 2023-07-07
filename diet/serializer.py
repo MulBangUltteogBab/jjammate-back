@@ -36,3 +36,6 @@ class SetTakenFoodSerializer(serializers.Serializer):
 class GetTakenFoodSerializer(serializers.Serializer):
     military_serial_number = serializers.CharField(help_text='군번', max_length=15)
     
+class GetPXFoodListSerializer(serializers.Serializer):
+    begin = serializers.IntegerField(default=0)
+    end = serializers.IntegerField(default=10)

@@ -8,5 +8,7 @@ urlpatterns = [
     path('api/modify/', Modify.as_view()),
     path('api/getmyinfo/', GetMyInfo.as_view()),
     path('api/getkcalstatus/', GetKcalStatus.as_view()),
-    path('api/getnutritionstatus/', GetNutritionStatus.as_view())
+    path('api/getnutritionstatus/', GetNutritionStatus.as_view()),
+    path('api/getselector/', GetExerciseSelector.as_view()),
+    path('api/getunitlist/', GetUnitList.as_view())
 ]

@@ -38,3 +38,7 @@ class GetKcalStatusSerializer(serializers.Serializer):
 
 class GetNutritionStatusSerializer(serializers.Serializer):
     military_serial_number = serializers.CharField(help_text='군번', max_length=15)
+
+
+class GetExerciseSelectorSerializer(serializers.Serializer):
+    military_serial_number = serializers.CharField(help_text='군번', max_length=15)

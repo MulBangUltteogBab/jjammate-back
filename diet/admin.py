@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import PXFood, Diet, Nutrition
+from .models import *
 
 # Register your models here.
 admin.site.register(PXFood)

@@ -3,6 +3,7 @@ import bcrypt
 import jwt
 import logging
 import datetime
+from pytz import timezone
 
 from .models import *
 from exercise.models import *
@@ -18,6 +19,9 @@ from core.jsonparser import getJsonValue
 from django.http import HttpResponse, JsonResponse
 from django.db import transaction
 from django.views.decorators.csrf import csrf_exempt
+from django.core.exceptions import *
+
+logger = logging.getLogger('mbub')
 
 
 class Register(APIView):
@@ -28,11 +32,11 @@ class Register(APIView):
         data = request.data
         try:
             if User.objects.filter(military_serial_number = data['military_serial_number']).exists():
-                return JsonResponse({"message" : "EXISTS_MILITARY_SERIAL_NUMBER"}, status=400)
+                return JsonResponse({"message" : "이미 존재하는 회원입니다."}, status=400)
             # if UserAdd.objects.filter(nickname = data['nickname']).exists():
             #     return JsonResponse({"message" : "EXISTS_NICKNAME"}, status=400)
             
-            date = datetime.date.today().strftime('%Y-%m-%d')
+            date = datetime.datetime.now(timezone('Asia/Seoul')).strftime('%Y-%m-%d')
             bmi = data['weight']/((data['height']/100)**2)
             user = User.objects.create(
                 military_serial_number 	 = data['military_serial_number'], 
@@ -82,10 +86,13 @@ class Register(APIView):
             nutritionstatus.save()
 
 
-            return HttpResponse(status=200)
+            return JsonResponse({"message" : "회원가입에 성공하셨습니다."}, status=200)
             
         except KeyError:
-            return JsonResponse({"message" : "INVALID_KEYS"}, status=400)
+            return JsonResponse({"message" : "받지 못한 데이터가 존재합니다."}, status=400)
+
+        except ZeroDivisionError:
+            return JsonResponse({"message" : "키나 몸무게 중 0인 값이 있습니다."}, status=400)
 
 
 class Login(APIView):
@@ -112,11 +119,14 @@ class Login(APIView):
                         'bmi': userhealth.bmi
                         }, SECRET_KEY, algorithm='HS256')
                     return JsonResponse({"token" : token}, status=200)
-                return HttpResponse(status=401)
-            return HttpResponse(status=400)
+                return JsonResponse({'message' : "회원 정보가 존재하지 않거나 비밀번호가 틀렸습니다."}, status=400)
+            return JsonResponse({'message' : "회원 정보가 존재하지 않거나 비밀번호가 틀렸습니다."}, status=400)
         
         except KeyError:
-            return JsonResponse({'message' : "INVALID_KEYS"}, status=400)
+            return JsonResponse({"message" : "받지 못한 데이터가 존재합니다."}, status=400)
+        
+        except ObjectDoesNotExist:
+            return JsonResponse({"message" : "데이터가 존재하지 않습니다."}, status=400)
 
 
 class Modify(APIView):
@@ -127,7 +137,7 @@ class Modify(APIView):
         data = request.data
         try:
             if not User.objects.filter(military_serial_number = data['military_serial_number']).exists():
-                return JsonResponse({"message" : "NOT_EXISTS_MILITARY_SERIAL_NUMBER"}, status=400)
+                return JsonResponse({"message" : "군번이 틀렸습니다."}, status=400)
             
             military_serial_number = data['military_serial_number']
             user = User.objects.get(military_serial_number = military_serial_number)
@@ -168,7 +178,13 @@ class Modify(APIView):
             return HttpResponse(status=200)
             
         except KeyError:
-            return JsonResponse({"message" : "INVALID_KEYS"}, status=400)
+            return JsonResponse({"message" : "받지 못한 데이터가 존재합니다."}, status=400)
+
+        except ZeroDivisionError:
+            return JsonResponse({"message" : "키나 몸무게 중 0인 값이 있습니다."}, status=400)
+
+        except ObjectDoesNotExist:
+            return JsonResponse({"message" : "데이터가 존재하지 않습니다."}, status=400)
         
 
 class GetMyInfo(APIView):
@@ -179,7 +195,7 @@ class GetMyInfo(APIView):
         data = request.data
         try:
             military_serial_number = data['military_serial_number']
-            date = datetime.date.today().strftime('%Y-%m-%d')
+            date = datetime.datetime.now(timezone('Asia/Seoul')).strftime('%Y-%m-%d')
             user = User.objects.get(military_serial_number = military_serial_number)
             add = UserAdd.objects.get(key=user)
             health = UserHealth.objects.get(key=user)
@@ -197,7 +213,10 @@ class GetMyInfo(APIView):
             return JsonResponse(body, status=200)
 
         except KeyError:
-            return JsonResponse({"message" : "INVALID_KEYS"}, status=400)
+            return JsonResponse({"message" : "받지 못한 데이터가 존재합니다."}, status=400)
+
+        except ObjectDoesNotExist:
+            return JsonResponse({"message" : "데이터가 존재하지 않습니다."}, status=400)
 
 
 class GetKcalStatus(APIView):
@@ -208,7 +227,7 @@ class GetKcalStatus(APIView):
         data = request.data
         try:
             military_serial_number = data['military_serial_number']
-            date = datetime.date.today().strftime('%Y-%m-%d')
+            date = datetime.datetime.now(timezone('Asia/Seoul')).strftime('%Y-%m-%d')
             user = User.objects.get(military_serial_number = military_serial_number)
             status = UserKcalStatus.objects.get(key=user, date=date)
             userhealth = UserHealth.objects.get(key=user)
@@ -221,7 +240,10 @@ class GetKcalStatus(APIView):
             return JsonResponse(body, status=200)
 
         except KeyError:
-            return JsonResponse({"message" : "INVALID_KEYS"}, status=400)
+            return JsonResponse({"message" : "받지 못한 데이터가 존재합니다."}, status=400)
+
+        except ObjectDoesNotExist:
+            return JsonResponse({"message" : "데이터가 존재하지 않습니다."}, status=400)
 
 
 class GetNutritionStatus(APIView):
@@ -232,7 +254,7 @@ class GetNutritionStatus(APIView):
         data = request.data
         try:
             military_serial_number = data['military_serial_number']
-            date = datetime.date.today().strftime('%Y-%m-%d')
+            date = datetime.datetime.now(timezone('Asia/Seoul')).strftime('%Y-%m-%d')
             user = User.objects.get(military_serial_number = military_serial_number)
             nutritionstatus = UserNutritionStatus.objects.get(key=user, date=date)
             total = getJsonValue('total', 'nutrition.json')
@@ -247,9 +269,61 @@ class GetNutritionStatus(APIView):
                     "carbohydrate": nutritionstatus.carbohydrate/total['carbohydrate']*100,
                     "protein": nutritionstatus.protein/total['protein']*100,
                     "fat": nutritionstatus.fat/total['fat']*100,
+                },
+                "total": {
+                    "carbohydrate": total['carbohydrate'],
+                    "protein": total['protein'],
+                    "fat": total['fat'],
                 }
             }
             return JsonResponse(body, status=200)
 
         except KeyError:
-            return JsonResponse({"message" : "INVALID_KEYS"}, status=400)
+            return JsonResponse({"message" : "받지 못한 데이터가 존재합니다."}, status=400)
+
+        except ObjectDoesNotExist:
+            return JsonResponse({"message" : "데이터가 존재하지 않습니다."}, status=400)
+
+        except ZeroDivisionError:
+            return JsonResponse({"message" : "키나 몸무게 중 0인 값이 있습니다."}, status=400)
+
+
+class GetExerciseSelector(APIView):
+    @swagger_auto_schema(tags=['User'], request_body=GetExerciseSelectorSerializer)
+    @transaction.atomic
+    @csrf_exempt
+    def post(self, request):
+        data = request.data
+        try:
+            military_serial_number = data['military_serial_number']
+            user = User.objects.get(military_serial_number = military_serial_number)
+            selector = UserExerciseSelector.objects.get(key=user)
+            return JsonResponse({"days": selector.number}, status=200)
+
+        except KeyError:
+            return JsonResponse({"message" : "받지 못한 데이터가 존재합니다."}, status=400)
+
+        except ObjectDoesNotExist:
+            return JsonResponse({"message" : "데이터가 존재하지 않습니다."}, status=400)
+    
+
+class GetUnitList(APIView):
+    @swagger_auto_schema(tags=['User'])
+    @transaction.atomic
+    @csrf_exempt
+    def get(self, request):
+        try:
+            unitlist = getJsonValue("unit", 'unit.json')
+            units = []
+            for unit in unitlist:
+                if unit["unique"] == "":
+                    units.append("제"+unit["common"]+"부대")
+                else:
+                    units.append(unit["unique"])
+            body = {
+                "unit": units
+            }
+            return JsonResponse(body, status=200)
+
+        except KeyError:
+            return JsonResponse({"message" : "받지 못한 데이터가 존재합니다."}, status=400)
