@@ -59,7 +59,7 @@ class UserExerciseSelector(models.Model):
     number = models.SmallIntegerField()
 
 
-class UserRecommendPxFood(models.Model):
+class UserRecommendPXFood(models.Model):
     key = models.ForeignKey(User, on_delete=models.CASCADE, db_column='key')
     date = models.DateField()
     pxfoods = models.JSONField()

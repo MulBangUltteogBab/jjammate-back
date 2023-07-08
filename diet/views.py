@@ -11,13 +11,15 @@ from .models import *
 from common.models import *
 
 from .serializer import *
+from common.serializer import *
 from rest_framework.views import APIView 
 from drf_yasg.utils       import swagger_auto_schema
 from drf_yasg             import openapi
 from config.settings import SECRET_KEY
 from core.webparser import parsePXFood, getDiet, isValidDate, mappingFoodToNutrient, parsePXFoodPicture
 from core.unit import deleteUnit, getUnitNumber
-from core.recommend import recommend
+from core.recommend import recommendFunc
+from core.decorator import modelsInit
 
 from django.http import HttpResponse, JsonResponse
 from django.db import transaction
@@ -28,21 +30,30 @@ logger = logging.getLogger('mbub')
 
 
 class Recommend(APIView):
-    @swagger_auto_schema(tags=['About Diet'], request_body=RecommendSerializer)
+    @swagger_auto_schema(
+        tags=['About Diet'], 
+        request_body=RecommendSerializer,
+        responses={
+            "200": RecommendSuccessSerializer,
+            "401": KeyErrorResponseSerializer,
+            "402": NoDBErrorSerializer
+        })
     @transaction.atomic
     @csrf_exempt
     def post(self, request):
         data = request.data
         try:
-            military_number = getUnitNumber(data['military_number'])
-            user = User.objects.get(military_number = military_number)
-            date = datetime.datetime.now(timezone('Asia/Seoul')).strftime('%Y-%m-%d')
-            if UserRecommendPxFood.objects.filter(key=user, date=date).exists():
-                recommend = UserRecommendPxFood.objects.get(key=user, date=date)
+            military_serial_number = data['military_serial_number']
+            user = User.objects.get(military_serial_number = military_serial_number)
+            useradd = UserAdd.objects.get(key=user)
+            military_number = getUnitNumber(useradd.department)
+            date = datetime.datetime.now(timezone('Asia/Seoul')).date().strftime('%Y-%m-%d')
+            if UserRecommendPXFood.objects.filter(key=user, date=date).exists():
+                recommend = UserRecommendPXFood.objects.get(key=user, date=date)
                 return JsonResponse(recommend.pxfoods, status=200)
             
             userhealth = UserHealth.objects.get(key=user)
-            diet = Diet.objects.get(military_number = military_number, date = date)
+            diet = Diet.objects.get(military_number = int(military_number), date = date)
             body = {
                 "pxfoods": []
             }
@@ -58,80 +69,87 @@ class Recommend(APIView):
                     total['calorie'] += 100
                 else:
                     nutr = Nutrition.objects.get(name = breakfast)
-                    total['calorie'] += int(deleteUnit(nutr.calorie))
-                    total['carbohydrate'] += int(deleteUnit(nutr.carbohydrate))
-                    total['protein'] += int(deleteUnit(nutr.protein))
-                    total['fat'] += int(deleteUnit(nutr.fat))
+                    total['calorie'] += float(deleteUnit(nutr.calorie))
+                    total['carbohydrate'] += float(deleteUnit(nutr.carbohydrate))
+                    total['protein'] += float(deleteUnit(nutr.protein))
+                    total['fat'] += float(deleteUnit(nutr.fat))
             for lunch in diet.diet["lunch"]:
                 nutr = Nutrition.objects.filter(name = lunch)
                 if not nutr.exists():
                     total['calorie'] += 100
                 else:
                     nutr = Nutrition.objects.get(name = lunch)
-                    total['calorie'] += int(deleteUnit(nutr.calorie))
-                    total['carbohydrate'] += int(deleteUnit(nutr.carbohydrate))
-                    total['protein'] += int(deleteUnit(nutr.protein))
-                    total['fat'] += int(deleteUnit(nutr.fat))
+                    total['calorie'] += float(deleteUnit(nutr.calorie))
+                    total['carbohydrate'] += float(deleteUnit(nutr.carbohydrate))
+                    total['protein'] += float(deleteUnit(nutr.protein))
+                    total['fat'] += float(deleteUnit(nutr.fat))
             for dinner in diet.diet["dinner"]:
                 nutr = Nutrition.objects.filter(name = dinner)
                 if not nutr.exists():
                     total['calorie'] += 100
                 else:
                     nutr = Nutrition.objects.get(name = dinner)
-                    total['calorie'] += int(deleteUnit(nutr.calorie))
-                    total['carbohydrate'] += int(deleteUnit(nutr.carbohydrate))
-                    total['protein'] += int(deleteUnit(nutr.protein))
-                    total['fat'] += int(deleteUnit(nutr.fat))
+                    total['calorie'] += float(deleteUnit(nutr.calorie))
+                    total['carbohydrate'] += float(deleteUnit(nutr.carbohydrate))
+                    total['protein'] += float(deleteUnit(nutr.protein))
+                    total['fat'] += float(deleteUnit(nutr.fat))
 
             pxfoods = PXFood.objects.all()
             for pxfood in pxfoods:
-                nutr = Nutrition.objects.filter(name = pxfood.name)
-                if recommend(nutr, total, userhealth.totalkcal):
+                nutr = Nutrition.objects.get(name = pxfood.name)
+                if recommendFunc(nutr, total, userhealth.totalkcal):
                     body['pxfoods'].append({
                             "name": pxfood.name,
-                            "calorie": nutr.calorie,
-                            "carbohydrate": nutr.carbohydrate,
-                            "protein": nutr.protein,
-                            "fat": nutr.fat,
-                            "amount": nutr.amount,
+                            "calorie": float(deleteUnit(nutr.calorie)),
+                            "carbohydrate": float(deleteUnit(nutr.carbohydrate)),
+                            "protein": float(deleteUnit(nutr.protein)),
+                            "fat": float(deleteUnit(nutr.fat)),
+                            "amount": float(deleteUnit(nutr.amount)),
                             "image": pxfood.image.url
                         })
             
             index = []
-            for i in range(0, 3-len(body['pxfoods'])):
-                idx = randint(0, pxfoods.count())
+            for i in range(0, 5-len(body['pxfoods'])):
+                idx = randint(0, pxfoods.count() - 1)
                 while idx in index:
-                    idx = randint(0, pxfoods.count())
+                    idx = randint(0, pxfoods.count() - 1)
                 index.append(idx)
 
             for i in index:
-                nutr = Nutrition.objects.filter(name = pxfood[i].name)
+                nutr = Nutrition.objects.get(name = pxfoods[i].name)
                 body['pxfoods'].append({
-                            "name": pxfood[i].name,
-                            "calorie": nutr.calorie,
-                            "carbohydrate": nutr.carbohydrate,
-                            "protein": nutr.protein,
-                            "fat": nutr.fat,
-                            "amount": nutr.amount,
-                            "image": pxfood[i].image.url
+                            "name": pxfoods[i].name,
+                            "calorie": float(deleteUnit(nutr.calorie)),
+                            "carbohydrate": float(deleteUnit(nutr.carbohydrate)),
+                            "protein": float(deleteUnit(nutr.protein)),
+                            "fat": float(deleteUnit(nutr.fat)),
+                            "amount": float(deleteUnit(nutr.amount)),
+                            "image": pxfoods[i].image.url
                         })
-            UserRecommendPxFood.objects.create(
+            UserRecommendPXFood.objects.create(
                 key = user,
                 date = date,
-                pxfoods = body['pxfoods']
+                pxfoods = body
             )
                 
             return JsonResponse(body, status=200)
         
         except KeyError:
-            return JsonResponse({"message" : "받지 못한 데이터가 존재합니다."}, status=400)
+            return JsonResponse({"message" : "받지 못한 데이터가 존재합니다."}, status=401)
 
         except ObjectDoesNotExist:
-            return JsonResponse({"message" : "데이터가 존재하지 않습니다."}, status=400)
+            return JsonResponse({"message" : "데이터가 존재하지 않습니다."}, status=402)
 
 
 class GetPXFood(APIView):
-    @swagger_auto_schema(tags=['About Diet'], request_body=GetPXFoodSerializer)
+    @swagger_auto_schema(
+        tags=['About Diet'], 
+        request_body=GetPXFoodSerializer,
+        responses={
+            "200": GetPXFoodSuccessSerializer,
+            "401": KeyErrorResponseSerializer,
+            "402": NoDBErrorSerializer
+        })
     @transaction.atomic
     @csrf_exempt
     def post(self, request):
@@ -157,94 +175,21 @@ class GetPXFood(APIView):
             return JsonResponse(body, status=200)
 
         except KeyError:
-            return JsonResponse({"message" : "받지 못한 데이터가 존재합니다."}, status=400)
+            return JsonResponse({"message" : "받지 못한 데이터가 존재합니다."}, status=401)
 
         except ObjectDoesNotExist:
-            return JsonResponse({"message" : "데이터가 존재하지 않습니다."}, status=400)
+            return JsonResponse({"message" : "데이터가 존재하지 않습니다."}, status=402)
 
     
-class GetPxFoodList(APIView):
-    @swagger_auto_schema(tags=['About Diet'], request_body=GetPXFoodListSerializer)
-    @transaction.atomic
-    @csrf_exempt
-    def post(self, request):
-        data = request.data
-        try:
-            military_number = getUnitNumber(data['military_number'])
-            user = User.objects.get(military_number = military_number)
-            date = datetime.datetime.now(timezone('Asia/Seoul')).strftime('%Y-%m-%d')
-            begin = data["begin"]
-            end = data["end"]
-            recommend = UserRecommendPxFood.objects.get(key=user, date=date)
-            if begin < end or begin < 0:
-                JsonResponse({"message" : "begin은 0과 같거나 커야하고, end는 begin보다 커야합니다."}, status=400)
-            if len(recommend.pxfoods) < end:
-                end = pxfoods.count()
-            if len(recommend.pxfoods) < begin:
-                begin = pxfoods.count()
-            return JsonResponse({"pxfoods": recommend.pxfoods[begin:end]}, status=200)
-
-        except KeyError:
-            return JsonResponse({"message" : "받지 못한 데이터가 존재합니다."}, status=400)
-
-        except ObjectDoesNotExist:
-            return JsonResponse({"message" : "데이터가 존재하지 않습니다."}, status=400)
-
-class GetDiet(APIView):
-    @swagger_auto_schema(tags=['About Diet'], request_body=GetDietSerializer)
-    @transaction.atomic
-    @csrf_exempt
-    def post(self, request):
-        data = request.data
-        try:
-            military_number = getUnitNumber(data['military_number'])
-            date = datetime.datetime.now(timezone('Asia/Seoul')).strftime('%Y-%m-%d')
-            diet = Diet.objects.get(military_number = military_number, date = date)
-            body = {}
-            body['breakfast'] = []
-            body['lunch'] = []
-            body['dinner'] = []
-            for breakfast in diet.diet["breakfast"]:
-                nutr = Nutrition.objects.get(name = breakfast)
-                body['breakfast'].append({
-                    "name": breakfast,
-                    "calorie": nutr.calorie,
-                    "carbohydrate": nutr.carbohydrate,
-                    "protein": nutr.protein,
-                    "fat": nutr.fat,
-                    "amount": nutr.amount
-                })
-            for lunch in diet.diet["lunch"]:
-                nutr = Nutrition.objects.get(name = lunch)
-                body['lunch'].append({
-                    "name": lunch,
-                    "calorie": nutr.calorie,
-                    "carbohydrate": nutr.carbohydrate,
-                    "protein": nutr.protein,
-                    "fat": nutr.fat,
-                    "amount": nutr.amount
-                })
-            for dinner in diet.diet["dinner"]:
-                nutr = Nutrition.objects.get(name = dinner)
-                body['dinner'].append({
-                    "name": dinner,
-                    "calorie": nutr.calorie,
-                    "carbohydrate": nutr.carbohydrate,
-                    "protein": nutr.protein,
-                    "fat": nutr.fat,
-                    "amount": nutr.amount
-                })
-            return JsonResponse(body, status=200)
-
-        except KeyError:
-            return JsonResponse({"message" : "받지 못한 데이터가 존재합니다."}, status=400)
-
-        except ObjectDoesNotExist:
-            return JsonResponse({"message" : "데이터가 존재하지 않습니다."}, status=400)
-    
-
-class GetGauge(APIView):
-    @swagger_auto_schema(tags=['About Diet'], request_body=GetDietGaugeSerializer)
+class GetRecommendPXFoodList(APIView):
+    @swagger_auto_schema(
+        tags=['About Diet'], 
+        request_body=GetRecommendPXFoodListSerializer,
+        responses={
+            "200": GetRecommendPXFoodListSuccessSerializer,
+            "401": KeyErrorResponseSerializer,
+            "402": NoDBErrorSerializer
+        })
     @transaction.atomic
     @csrf_exempt
     def post(self, request):
@@ -252,27 +197,168 @@ class GetGauge(APIView):
         try:
             military_serial_number = data['military_serial_number']
             user = User.objects.get(military_serial_number = military_serial_number)
-            userhealth = UserHealth.objects.get(key=user)
-            date = datetime.datetime.now(timezone('Asia/Seoul')).strftime('%Y-%m-%d')
-            kcalstatus = UserKcalStatus.objects.get(key=user, date=date)
-            gauge = kcalstatus.taken / userhealth.totalkcal * 100
-            return JsonResponse({"gauge" : gauge}, status=200)
+            date = datetime.datetime.now(timezone('Asia/Seoul')).date().strftime('%Y-%m-%d')
+            begin = data["begin"]
+            end = data["end"]
+            recommend = UserRecommendPXFood.objects.get(key=user, date=date)
+            if begin < end or begin < 0:
+                JsonResponse({"message" : "begin은 0과 같거나 커야하고, end는 begin보다 커야합니다."}, status=400)
+            if len(recommend.pxfoods) < end:
+                end = len(recommend.pxfoods)
+            if len(recommend.pxfoods) < begin:
+                begin = len(recommend.pxfoods)
+            return JsonResponse({"pxfoods": recommend.pxfoods[begin:end]}, status=200)
 
         except KeyError:
-            return JsonResponse({"message" : "받지 못한 데이터가 존재합니다."}, status=400)
+            return JsonResponse({"message" : "받지 못한 데이터가 존재합니다."}, status=401)
 
         except ObjectDoesNotExist:
-            return JsonResponse({"message" : "데이터가 존재하지 않습니다."}, status=400)
+            return JsonResponse({"message" : "데이터가 존재하지 않습니다."}, status=402)
 
 
-class StackDiet(APIView):
-    @swagger_auto_schema(tags=['About Parsing'], request_body=StackDietSerializer)
+class GetPXFoodList(APIView):
+    @swagger_auto_schema(
+        tags=['About Diet'], 
+        request_body=GetPXFoodListSerializer,
+        responses={
+            "200": GetPXFoodListSuccessSerializer,
+            "401": KeyErrorResponseSerializer,
+            "402": NoDBErrorSerializer
+        })
+    @transaction.atomic
+    @csrf_exempt
+    def post(self, request):
+        data = request.data
+        try:
+            body = {
+                "pxfoods": []
+            }
+            if ("begin" not in data) and ("end" not in data):
+                pxfoods = PXFood.objects.all().order_by('id')
+                for pxfood in pxfoods:
+                    nutr = Nutrition.objects.get(name = pxfood.name)
+                    body['pxfoods'].append({
+                        "name": pxfood.name,
+                        "calorie": nutr.calorie,
+                        "carbohydrate": nutr.carbohydrate,
+                        "protein": nutr.protein,
+                        "fat": nutr.fat,
+                        "amount": nutr.amount,
+                        "image": pxfood.image.url
+                    })
+            else:
+                begin = data["begin"]
+                end = data["end"]
+                pxfoods = PXFood.objects.all().order_by('id')
+                if begin < end or begin < 0:
+                    JsonResponse({"message" : "begin은 0과 같거나 커야하고, end는 begin보다 커야합니다."}, status=400)
+                if pxfoods.count() < end:
+                    end = pxfoods.count()
+                if pxfoods.count() < begin:
+                    begin = pxfoods.count()
+
+                pxfoods = pxfoods[begin:end]
+                for pxfood in pxfoods:
+                    nutr = Nutrition.objects.get(name = pxfood.name)
+                    body['pxfoods'].append({
+                        "name": pxfood.name,
+                        "calorie": nutr.calorie,
+                        "carbohydrate": nutr.carbohydrate,
+                        "protein": nutr.protein,
+                        "fat": nutr.fat,
+                        "amount": nutr.amount,
+                        "image": pxfood.image.url
+                    })
+            return JsonResponse(body, status=200)
+
+        except KeyError:
+            return JsonResponse({"message" : "받지 못한 데이터가 존재합니다."}, status=401)
+
+        except ObjectDoesNotExist:
+            return JsonResponse({"message" : "데이터가 존재하지 않습니다."}, status=402)
+
+
+class GetDiet(APIView):
+    @swagger_auto_schema(
+        tags=['About Diet'], 
+        request_body=GetDietSerializer,
+        responses={
+            "200": GetDietSuccessSerializer,
+            "401": KeyErrorResponseSerializer,
+            "402": NoDBErrorSerializer
+        })
     @transaction.atomic
     @csrf_exempt
     def post(self, request):
         data = request.data
         try:
             military_number = getUnitNumber(data['military_number'])
+            date = datetime.datetime.now(timezone('Asia/Seoul')).date().strftime('%Y-%m-%d')
+            diet = Diet.objects.get(military_number = int(military_number), date = date)
+            body = {}
+            body['breakfast'] = []
+            body['lunch'] = []
+            body['dinner'] = []
+            for breakfast in diet.diet["breakfast"]:
+                if breakfast == "":
+                    continue
+                nutr = Nutrition.objects.get(name = breakfast)
+                body['breakfast'].append({
+                    "name": breakfast,
+                    "calorie": float(deleteUnit(nutr.calorie)),
+                    "carbohydrate": float(deleteUnit(nutr.carbohydrate)),
+                    "protein": float(deleteUnit(nutr.protein)),
+                    "fat": float(deleteUnit(nutr.fat)),
+                    "amount": float(deleteUnit(nutr.amount))
+                })
+            for lunch in diet.diet["lunch"]:
+                if lunch == "":
+                    continue
+                nutr = Nutrition.objects.get(name = lunch)
+                body['lunch'].append({
+                    "name": lunch,
+                    "calorie": float(deleteUnit(nutr.calorie)),
+                    "carbohydrate": float(deleteUnit(nutr.carbohydrate)),
+                    "protein": float(deleteUnit(nutr.protein)),
+                    "fat": float(deleteUnit(nutr.fat)),
+                    "amount": float(deleteUnit(nutr.amount))
+                })
+            for dinner in diet.diet["dinner"]:
+                if dinner == "":
+                    continue
+                nutr = Nutrition.objects.get(name = dinner)
+                body['dinner'].append({
+                    "name": dinner,
+                    "calorie": float(deleteUnit(nutr.calorie)),
+                    "carbohydrate": float(deleteUnit(nutr.carbohydrate)),
+                    "protein": float(deleteUnit(nutr.protein)),
+                    "fat": float(deleteUnit(nutr.fat)),
+                    "amount": float(deleteUnit(nutr.amount))
+                })
+            return JsonResponse(body, status=200)
+
+        except KeyError:
+            return JsonResponse({"message" : "받지 못한 데이터가 존재합니다."}, status=401)
+
+        except ObjectDoesNotExist:
+            return JsonResponse({"message" : "데이터가 존재하지 않습니다."}, status=402)
+    
+
+class StackDiet(APIView):
+    @swagger_auto_schema(
+        tags=['About Parsing'], 
+        request_body=StackDietSerializer,
+        responses={
+            "200": StackSuccessSerializer,
+            "401": KeyErrorResponseSerializer,
+            "402": NoDBErrorSerializer
+        })
+    @transaction.atomic
+    @csrf_exempt
+    def post(self, request):
+        data = request.data
+        try:
+            military_number = data['military_number']
             for n in military_number:
                 logger.info("military_number: {}".format(n))
                 diets = getDiet(n)
@@ -283,16 +369,19 @@ class StackDiet(APIView):
                         continue
                     if Diet.objects.filter(military_number = n, date = date).exists():
                         continue
-                    if datetime.date.fromisoformat(date) >= datetime.datetime.now(timezone('Asia/Seoul')):
+                    if datetime.date.fromisoformat(date) >= datetime.datetime.now(timezone('Asia/Seoul')).date():
                         if date not in mealbydates:
                             mealbydates[date] = {
                                 'breakfast': [],
                                 'lunch': [],
                                 'dinner': []
                             }
-                        mealbydates[date]['breakfast'].append(diet['brst'])
-                        mealbydates[date]['lunch'].append(diet['lunc'])
-                        mealbydates[date]['dinner'].append(diet['dinr'])
+                        if diet['brst'] not in mealbydates[date]['breakfast']:
+                            mealbydates[date]['breakfast'].append(diet['brst'])
+                        if diet['lunc'] not in mealbydates[date]['lunch']:
+                            mealbydates[date]['lunch'].append(diet['lunc'])
+                        if diet['dinr'] not in mealbydates[date]['dinner']:
+                            mealbydates[date]['dinner'].append(diet['dinr'])
 
                 for date in mealbydates:
                     Diet.objects.create(
@@ -300,46 +389,53 @@ class StackDiet(APIView):
                         date = date,
                         diet = mealbydates[date],
                     ).save()
-            
-                for meal in mealbydates[date]:
-                    for diet in mealbydates[date][meal]:
-                        if diet == "":
-                            continue
-                        if Nutrition.objects.filter(name = diet).exists():
-                            continue
-                        nutritiondict, isvaild = mappingFoodToNutrient(diet)
-                        if not isvaild:
-                            logger.info(diet + " is not vaild")
-                            Nutrition.objects.create(
-                                name = diet,
-                                calorie = "%dkcal".format(randint(70, 100)),
-                                carbohydrate = "%dg".format(randint(16, 20)),
-                                protein = "%d".format(randint(9, 13)),
-                                fat = "%d".format(randint(1, 5)),
-                                amount = ""
-                            ).save()
-                            continue
-                        logger.info("Matching nutritiondict")
-                        Nutrition.objects.create(
-                            name = diet,
-                            calorie = nutritiondict["calorie"],
-                            carbohydrate = nutritiondict["carbohydrate"],
-                            protein = nutritiondict["protein"],
-                            fat = nutritiondict["fat"],
-                            amount = nutritiondict["amount"]
-                        ).save()
+                    for meal in mealbydates[date]:
+                        logger.info(meal)
+                        for diet in mealbydates[date][meal]:
+                            logger.info(diet)
+                            if diet == "":
+                                continue
+                            if Nutrition.objects.filter(name = diet).exists():
+                                continue
+                            nutritiondict, isvaild = mappingFoodToNutrient(diet)
+                            if not isvaild:
+                                logger.info(diet + " is not vaild")
+                                Nutrition.objects.create(
+                                    name = diet,
+                                    calorie = str(randint(70, 100)) + "kcal",
+                                    carbohydrate = str(randint(16, 20)) + "g",
+                                    protein = str(randint(9, 13)) + "g",
+                                    fat = str(randint(1, 5)) + "g",
+                                    amount = "100g"
+                                ).save()
+                            else:
+                                logger.info("Matching nutritiondict")
+                                Nutrition.objects.create(
+                                    name = diet,
+                                    calorie = str(float(deleteUnit(nutritiondict["calorie"]))*(150/float(deleteUnit(nutritiondict["amount"]))))+"kcal",
+                                    carbohydrate = str(float(deleteUnit(nutritiondict["carbohydrate"]))*(150/float(deleteUnit(nutritiondict["amount"]))))+"g",
+                                    protein = str(float(deleteUnit(nutritiondict["protein"]))*(150/float(deleteUnit(nutritiondict["amount"]))))+"g",
+                                    fat = str(float(deleteUnit(nutritiondict["fat"]))*(150/float(deleteUnit(nutritiondict["amount"]))))+"g",
+                                    amount = nutritiondict["amount"]
+                                ).save()
 
             return JsonResponse({"message" : "식단표 크롤링 성공"}, status=200)
 
         except KeyError:
-            return JsonResponse({"message" : "받지 못한 데이터가 존재합니다."}, status=400)
+            return JsonResponse({"message" : "받지 못한 데이터가 존재합니다."}, status=401)
 
         except ObjectDoesNotExist:
-            return JsonResponse({"message" : "데이터가 존재하지 않습니다."}, status=400)
+            return JsonResponse({"message" : "데이터가 존재하지 않습니다."}, status=402)
 
 
 class StackPXFood(APIView):
-    @swagger_auto_schema(tags=['About Parsing'])
+    @swagger_auto_schema(
+        tags=['About Parsing'],
+        responses={
+            "200": StackSuccessSerializer,
+            "401": KeyErrorResponseSerializer,
+            "402": NoDBErrorSerializer
+        })
     @transaction.atomic
     @csrf_exempt
     def get(self, request):
@@ -361,11 +457,11 @@ class StackPXFood(APIView):
                     if not isvaild:
                         Nutrition.objects.create(
                             name = pxfoods["name"][i],
-                            calorie = "%dkcal".format(randint(70, 100)),
-                            carbohydrate = "%dg".format(randint(16, 20)),
-                            protein = "%d".format(randint(9, 13)),
-                            fat = "%d".format(randint(1, 5)),
-                            amount = ""
+                            calorie = str(randint(70, 100)) + "kcal",
+                            carbohydrate = str(randint(16, 20)) + "g",
+                            protein = str(randint(9, 13)) + "g",
+                            fat = str(randint(1, 5)) + "g",
+                            amount = "100g"
                         ).save()
                         continue
                     Nutrition.objects.create(
@@ -380,23 +476,31 @@ class StackPXFood(APIView):
             return JsonResponse({"message" : "PX 상품 크롤링 성공"}, status=200)
                     
         except KeyError:
-            return JsonResponse({"message" : "받지 못한 데이터가 존재합니다."}, status=400)
+            return JsonResponse({"message" : "받지 못한 데이터가 존재합니다."}, status=401)
 
         except ObjectDoesNotExist:
-            return JsonResponse({"message" : "데이터가 존재하지 않습니다."}, status=400)
+            return JsonResponse({"message" : "데이터가 존재하지 않습니다."}, status=402)
 
 
 class SetTakenFood(APIView):
-    @swagger_auto_schema(tags=['About Diet'], request_body=SetTakenFoodSerializer)
+    @swagger_auto_schema(
+        tags=['About Diet'], 
+        request_body=SetTakenFoodSerializer,
+        responses={
+            "200": SetTakenFoodSuccessSerializer,
+            "401": KeyErrorResponseSerializer,
+            "402": NoDBErrorSerializer
+        })
     @transaction.atomic
     @csrf_exempt
+    @modelsInit
     def post(self, request):
         data = request.data
         try:
             military_serial_number = data['military_serial_number']
             foodlist = data['foodlist']
             user = User.objects.get(military_serial_number = military_serial_number)
-            date = datetime.datetime.now(timezone('Asia/Seoul')).strftime('%Y-%m-%d')
+            date = datetime.datetime.now(timezone('Asia/Seoul')).date().strftime('%Y-%m-%d')
             if not UserTakenFood.objects.filter(key=user, date=date).exists():
                 UserTakenFood.objects.create(
                     key = user,
@@ -405,26 +509,48 @@ class SetTakenFood(APIView):
                         "pxfood":[],
                         "diet":[]
                     }
-                )
+                ).save()
+            takenfood = UserTakenFood.objects.get(key=user, date=date)
+            if len(takenfood.foodlist["diet"]) == 0:
+                add = UserAdd.objects.get(key=user)
+                military_number = int(getUnitNumber(add.department))
+                diet = Diet.objects.get(military_number = military_number, date = date)
+                for meal in diet.diet:
+                    for food in diet.diet[meal]:
+                        takenfood.foodlist["diet"].append(food)
+            takenfood.foodlist["pxfood"] = []
+            takenfood.foodlist["pxfood"] += foodlist['pxfood']
+
             taken = 0
-            for key in foodlist:
-                for foodname in foodlist[key]:
-                    taken += int(deleteUnit(Nutrition.objects.get(name=foodname).calorie))
+            for foodname in foodlist["pxfood"]:
+                taken += float(deleteUnit(Nutrition.objects.get(name=foodname).calorie))
             
-            UserKcalStatus.objects.get(key=user, date=date).update(taken=taken)
-            UserTakenFood.objects.get(key=user, date=date).update(foodlist=foodlist)
+            logger.info("pass")
+
+            kcalstatus = UserKcalStatus.objects.get(key=user, date=date)
+            kcalstatus.taken = taken
+            kcalstatus.save()
+
+            takenfood.save()
 
             return JsonResponse({"message" : "먹은 음식 갱신 성공"}, status=200)
                     
         except KeyError:
-            return JsonResponse({"message" : "받지 못한 데이터가 존재합니다."}, status=400)
+            return JsonResponse({"message" : "받지 못한 데이터가 존재합니다."}, status=401)
 
         except ObjectDoesNotExist:
-            return JsonResponse({"message" : "데이터가 존재하지 않습니다."}, status=400)
+            return JsonResponse({"message" : "데이터가 존재하지 않습니다."}, status=402)
 
 
 class GetTakenFood(APIView):
-    @swagger_auto_schema(tags=['About Diet'], request_body=GetTakenFoodSerializer)
+    @swagger_auto_schema(
+        tags=['About Diet'], 
+        request_body=GetTakenFoodSerializer,
+        responses={
+            "200": GetTakenFoodSuccessSerializer,
+            "401": KeyErrorResponseSerializer,
+            "402": NoDBErrorSerializer
+        })
     @transaction.atomic
     @csrf_exempt
     def post(self, request):
@@ -432,7 +558,7 @@ class GetTakenFood(APIView):
         try:
             military_serial_number = data['military_serial_number']
             user = User.objects.get(military_serial_number = military_serial_number)
-            date = datetime.datetime.now(timezone('Asia/Seoul')).strftime('%Y-%m-%d')
+            date = datetime.datetime.now(timezone('Asia/Seoul')).date().strftime('%Y-%m-%d')
             if not UserTakenFood.objects.filter(key=user, date=date).exists():
                 UserTakenFood.objects.create(
                     key = user,
@@ -441,13 +567,21 @@ class GetTakenFood(APIView):
                         "pxfood":[],
                         "diet":[]
                     }
-                )
-            body = UserTakenFood.objects.get(key=user, date=date).foodlist
+                ).save()
+            takenfood = UserTakenFood.objects.get(key=user, date=date)
+            if len(takenfood.foodlist["diet"]) == 0:
+                add = UserAdd.objects.get(key=user)
+                military_number = int(getUnitNumber(add.department))
+                diet = Diet.objects.get(military_number = military_number, date = date)
+                for meal in diet.diet:
+                    for food in diet.diet[meal]:
+                        takenfood.foodlist["diet"].append(food)
+            body = takenfood.foodlist
 
             return JsonResponse(body, status=200)
                     
         except KeyError:
-            return JsonResponse({"message" : "받지 못한 데이터가 존재합니다."}, status=400)
+            return JsonResponse({"message" : "받지 못한 데이터가 존재합니다."}, status=401)
 
         except ObjectDoesNotExist:
-            return JsonResponse({"message" : "데이터가 존재하지 않습니다."}, status=400)
+            return JsonResponse({"message" : "데이터가 존재하지 않습니다."}, status=402)
