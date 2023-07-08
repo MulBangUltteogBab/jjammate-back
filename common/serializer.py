@@ -4,7 +4,6 @@ from rest_framework import serializers
 class RegisterSerializer(serializers.Serializer):
     military_serial_number = serializers.CharField(help_text='군번', max_length=15)
     password = serializers.CharField(help_text='비밀번호', max_length=20, required=False)
-    # nickname = serializers.CharField(help_text='별칭', max_length=20, required=False)
     agreement = serializers.BooleanField(help_text='동의란 True/False')
     username = serializers.CharField(help_text='성명', max_length=20, required=False)
     department = serializers.CharField(help_text='부서', max_length=60, required=False)

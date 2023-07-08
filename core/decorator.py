@@ -28,6 +28,7 @@ def modelsInit(func):
             UserNutritionStatus.objects.create(
                 key = user,
                 date = date,
+                isdiet = False,
                 carbohydrate = 0,
                 protein = 0,
                 fat = 0

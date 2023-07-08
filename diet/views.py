@@ -250,11 +250,11 @@ class GetPXFoodList(APIView):
                 nutr = Nutrition.objects.get(name = pxfood.name)
                 body['pxfoods'].append({
                     "name": pxfood.name,
-                    "calorie": nutr.calorie,
-                    "carbohydrate": nutr.carbohydrate,
-                    "protein": nutr.protein,
-                    "fat": nutr.fat,
-                    "amount": nutr.amount,
+                    "calorie": deleteUnit(nutr.calorie),
+                    "carbohydrate": deleteUnit(nutr.carbohydrate),
+                    "protein": deleteUnit(nutr.protein),
+                    "fat": deleteUnit(nutr.fat),
+                    "amount": deleteUnit(nutr.amount),
                     "image": pxfood.image.url
                 })
             return JsonResponse(body, status=200)
@@ -277,6 +277,7 @@ class GetDiet(APIView):
         })
     @transaction.atomic
     @csrf_exempt
+    @modelsInit
     def post(self, request):
         data = request.data
         try:
@@ -287,6 +288,7 @@ class GetDiet(APIView):
             date = datetime.datetime.now(timezone('Asia/Seoul')).date().strftime('%Y-%m-%d')
             diet = Diet.objects.get(military_number = int(military_number), date = date)
             kcalstatus = UserKcalStatus.objects.get(key=user, date=date)
+            nutrstatus = UserNutritionStatus.objects.get(key=user, date=date)
             body = {}
             body['breakfast'] = []
             body['lunch'] = []
@@ -297,6 +299,10 @@ class GetDiet(APIView):
                 nutr = Nutrition.objects.get(name = breakfast)
                 if not kcalstatus.isdiet:
                     kcalstatus.taken += deleteUnit(nutr.calorie)
+                if not nutrstatus.isdiet:
+                    nutrstatus.carbohydrate += deleteUnit(nutr.carbohydrate)
+                    nutrstatus.protein += deleteUnit(nutr.protein)
+                    nutrstatus.fat += deleteUnit(nutr.fat)
                 body['breakfast'].append({
                     "name": breakfast,
                     "calorie": deleteUnit(nutr.calorie),
@@ -311,6 +317,10 @@ class GetDiet(APIView):
                 nutr = Nutrition.objects.get(name = lunch)
                 if not kcalstatus.isdiet:
                     kcalstatus.taken += deleteUnit(nutr.calorie)
+                if not nutrstatus.isdiet:
+                    nutrstatus.carbohydrate += deleteUnit(nutr.carbohydrate)
+                    nutrstatus.protein += deleteUnit(nutr.protein)
+                    nutrstatus.fat += deleteUnit(nutr.fat)
                 body['lunch'].append({
                     "name": lunch,
                     "calorie": deleteUnit(nutr.calorie),
@@ -325,6 +335,10 @@ class GetDiet(APIView):
                 nutr = Nutrition.objects.get(name = dinner)
                 if not kcalstatus.isdiet:
                     kcalstatus.taken += deleteUnit(nutr.calorie)
+                if not nutrstatus.isdiet:
+                    nutrstatus.carbohydrate += deleteUnit(nutr.carbohydrate)
+                    nutrstatus.protein += deleteUnit(nutr.protein)
+                    nutrstatus.fat += deleteUnit(nutr.fat)
                 body['dinner'].append({
                     "name": dinner,
                     "calorie": deleteUnit(nutr.calorie),
@@ -334,7 +348,9 @@ class GetDiet(APIView):
                     "amount": deleteUnit(nutr.amount)
                 })
             kcalstatus.isdiet = True
+            nutrstatus.isdiet = True
             kcalstatus.save()
+            nutrstatus.save()
             return JsonResponse(body, status=200)
 
         except KeyError:
@@ -508,9 +524,15 @@ class SetTakenFood(APIView):
                 food = food
             )
 
-            taken = deleteUnit(Nutrition.objects.get(name=foodname).calorie)
+            nutrstatus = UserNutritionStatus.objects.get(key=user, date=date)
             kcalstatus = UserKcalStatus.objects.get(key=user, date=date)
-            kcalstatus.taken += taken
+            
+            nutrstatus.carbohydrate += deleteUnit(food.carbohydrate)
+            nutrstatus.protein += deleteUnit(food.protein)
+            nutrstatus.fat += deleteUnit(food.fat)
+            kcalstatus.taken += deleteUnit(food.calorie)
+
+            nutrstatus.save()
             kcalstatus.save()
 
             return JsonResponse({"message" : "먹은 음식 갱신 성공"}, status=200)
@@ -540,10 +562,15 @@ class SetTakenFood(APIView):
             user = User.objects.get(military_serial_number = military_serial_number)
             date = datetime.datetime.now(timezone('Asia/Seoul')).date().strftime('%Y-%m-%d')
             food = Nutrition.objects.get(name=foodname)
-            taken = deleteUnit(Nutrition.objects.get(name=foodname).calorie)
+
             kcalstatus = UserKcalStatus.objects.get(key=user, date=date)
-            kcalstatus.taken -= taken
+            nutrstatus = UserNutritionStatus.objects.get(key=user, date=date)
+            kcalstatus.taken -= deleteUnit(food.calorie)
+            nutrstatus.carbohydrate -= deleteUnit(food.carbohydrate)
+            nutrstatus.protein -= deleteUnit(food.protein)
+            nutrstatus.fat -= deleteUnit(food.fat)
             kcalstatus.save()
+            nutrstatus.save()
 
             taken = UserTakenFood.objects.filter(
                 key = user,

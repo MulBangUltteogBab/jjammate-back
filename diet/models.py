@@ -26,7 +26,6 @@ class Diet(models.Model):
 class Nutrition(models.Model):
     name = models.CharField(max_length=60, primary_key=True)
     calorie = models.CharField(max_length=10)
-    # kcal is unit
     carbohydrate = models.CharField(max_length=10)
     protein = models.CharField(max_length=10)
     fat = models.CharField(max_length=10)
