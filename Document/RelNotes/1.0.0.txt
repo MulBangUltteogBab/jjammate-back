@@ -1,0 +1,8 @@
+1.0.0
+
+Start Version for JJAMMATE!
+feature:
+
+technology:
+
+framework:
