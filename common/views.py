@@ -91,8 +91,6 @@ class Register(APIView):
             selector.save()
             kcalstatus.save()
             nutritionstatus.save()
-
-
             return JsonResponse({"message" : "회원가입에 성공하셨습니다."}, status=200)
             
         except KeyError:

@@ -69,30 +69,30 @@ class Recommend(APIView):
                     total['calorie'] += 100
                 else:
                     nutr = Nutrition.objects.get(name = breakfast)
-                    total['calorie'] += float(deleteUnit(nutr.calorie))
-                    total['carbohydrate'] += float(deleteUnit(nutr.carbohydrate))
-                    total['protein'] += float(deleteUnit(nutr.protein))
-                    total['fat'] += float(deleteUnit(nutr.fat))
+                    total['calorie'] += deleteUnit(nutr.calorie)
+                    total['carbohydrate'] += deleteUnit(nutr.carbohydrate)
+                    total['protein'] += deleteUnit(nutr.protein)
+                    total['fat'] += deleteUnit(nutr.fat)
             for lunch in diet.diet["lunch"]:
                 nutr = Nutrition.objects.filter(name = lunch)
                 if not nutr.exists():
                     total['calorie'] += 100
                 else:
                     nutr = Nutrition.objects.get(name = lunch)
-                    total['calorie'] += float(deleteUnit(nutr.calorie))
-                    total['carbohydrate'] += float(deleteUnit(nutr.carbohydrate))
-                    total['protein'] += float(deleteUnit(nutr.protein))
-                    total['fat'] += float(deleteUnit(nutr.fat))
+                    total['calorie'] += deleteUnit(nutr.calorie)
+                    total['carbohydrate'] += deleteUnit(nutr.carbohydrate)
+                    total['protein'] += deleteUnit(nutr.protein)
+                    total['fat'] += deleteUnit(nutr.fat)
             for dinner in diet.diet["dinner"]:
                 nutr = Nutrition.objects.filter(name = dinner)
                 if not nutr.exists():
                     total['calorie'] += 100
                 else:
                     nutr = Nutrition.objects.get(name = dinner)
-                    total['calorie'] += float(deleteUnit(nutr.calorie))
-                    total['carbohydrate'] += float(deleteUnit(nutr.carbohydrate))
-                    total['protein'] += float(deleteUnit(nutr.protein))
-                    total['fat'] += float(deleteUnit(nutr.fat))
+                    total['calorie'] += deleteUnit(nutr.calorie)
+                    total['carbohydrate'] += deleteUnit(nutr.carbohydrate)
+                    total['protein'] += deleteUnit(nutr.protein)
+                    total['fat'] += deleteUnit(nutr.fat)
 
             pxfoods = PXFood.objects.all()
             for pxfood in pxfoods:
@@ -100,11 +100,11 @@ class Recommend(APIView):
                 if recommendFunc(nutr, total, userhealth.totalkcal):
                     body['pxfoods'].append({
                             "name": pxfood.name,
-                            "calorie": float(deleteUnit(nutr.calorie)),
-                            "carbohydrate": float(deleteUnit(nutr.carbohydrate)),
-                            "protein": float(deleteUnit(nutr.protein)),
-                            "fat": float(deleteUnit(nutr.fat)),
-                            "amount": float(deleteUnit(nutr.amount)),
+                            "calorie": deleteUnit(nutr.calorie),
+                            "carbohydrate": deleteUnit(nutr.carbohydrate),
+                            "protein": deleteUnit(nutr.protein),
+                            "fat": deleteUnit(nutr.fat),
+                            "amount": deleteUnit(nutr.amount),
                             "image": pxfood.image.url
                         })
             
@@ -119,11 +119,11 @@ class Recommend(APIView):
                 nutr = Nutrition.objects.get(name = pxfoods[i].name)
                 body['pxfoods'].append({
                     "name": pxfoods[i].name,
-                    "calorie": float(deleteUnit(nutr.calorie)),
-                    "carbohydrate": float(deleteUnit(nutr.carbohydrate)),
-                    "protein": float(deleteUnit(nutr.protein)),
-                    "fat": float(deleteUnit(nutr.fat)),
-                    "amount": float(deleteUnit(nutr.amount)),
+                    "calorie": deleteUnit(nutr.calorie),
+                    "carbohydrate": deleteUnit(nutr.carbohydrate),
+                    "protein": deleteUnit(nutr.protein),
+                    "fat": deleteUnit(nutr.fat),
+                    "amount": deleteUnit(nutr.amount),
                     "image": pxfoods[i].image.url
                 })
             UserRecommendPXFood.objects.create(
@@ -296,42 +296,42 @@ class GetDiet(APIView):
                     continue
                 nutr = Nutrition.objects.get(name = breakfast)
                 if not kcalstatus.isdiet:
-                    kcalstatus.taken += float(deleteUnit(nutr.calorie))
+                    kcalstatus.taken += deleteUnit(nutr.calorie)
                 body['breakfast'].append({
                     "name": breakfast,
-                    "calorie": float(deleteUnit(nutr.calorie)),
-                    "carbohydrate": float(deleteUnit(nutr.carbohydrate)),
-                    "protein": float(deleteUnit(nutr.protein)),
-                    "fat": float(deleteUnit(nutr.fat)),
-                    "amount": float(deleteUnit(nutr.amount))
+                    "calorie": deleteUnit(nutr.calorie),
+                    "carbohydrate": deleteUnit(nutr.carbohydrate),
+                    "protein": deleteUnit(nutr.protein),
+                    "fat": deleteUnit(nutr.fat),
+                    "amount": deleteUnit(nutr.amount)
                 })
             for lunch in diet.diet["lunch"]:
                 if lunch == "":
                     continue
                 nutr = Nutrition.objects.get(name = lunch)
                 if not kcalstatus.isdiet:
-                    kcalstatus.taken += float(deleteUnit(nutr.calorie))
+                    kcalstatus.taken += deleteUnit(nutr.calorie)
                 body['lunch'].append({
                     "name": lunch,
-                    "calorie": float(deleteUnit(nutr.calorie)),
-                    "carbohydrate": float(deleteUnit(nutr.carbohydrate)),
-                    "protein": float(deleteUnit(nutr.protein)),
-                    "fat": float(deleteUnit(nutr.fat)),
-                    "amount": float(deleteUnit(nutr.amount))
+                    "calorie": deleteUnit(nutr.calorie),
+                    "carbohydrate": deleteUnit(nutr.carbohydrate),
+                    "protein": deleteUnit(nutr.protein),
+                    "fat": deleteUnit(nutr.fat),
+                    "amount": deleteUnit(nutr.amount)
                 })
             for dinner in diet.diet["dinner"]:
                 if dinner == "":
                     continue
                 nutr = Nutrition.objects.get(name = dinner)
                 if not kcalstatus.isdiet:
-                    kcalstatus.taken += float(deleteUnit(nutr.calorie))
+                    kcalstatus.taken += deleteUnit(nutr.calorie)
                 body['dinner'].append({
                     "name": dinner,
-                    "calorie": float(deleteUnit(nutr.calorie)),
-                    "carbohydrate": float(deleteUnit(nutr.carbohydrate)),
-                    "protein": float(deleteUnit(nutr.protein)),
-                    "fat": float(deleteUnit(nutr.fat)),
-                    "amount": float(deleteUnit(nutr.amount))
+                    "calorie": deleteUnit(nutr.calorie),
+                    "carbohydrate": deleteUnit(nutr.carbohydrate),
+                    "protein": deleteUnit(nutr.protein),
+                    "fat": deleteUnit(nutr.fat),
+                    "amount": deleteUnit(nutr.amount)
                 })
             kcalstatus.isdiet = True
             kcalstatus.save()
@@ -412,10 +412,10 @@ class StackDiet(APIView):
                                 logger.info("Matching nutritiondict")
                                 Nutrition.objects.create(
                                     name = diet,
-                                    calorie = str(float(deleteUnit(nutritiondict["calorie"]))*(150/float(deleteUnit(nutritiondict["amount"]))))+"kcal",
-                                    carbohydrate = str(float(deleteUnit(nutritiondict["carbohydrate"]))*(150/float(deleteUnit(nutritiondict["amount"]))))+"g",
-                                    protein = str(float(deleteUnit(nutritiondict["protein"]))*(150/float(deleteUnit(nutritiondict["amount"]))))+"g",
-                                    fat = str(float(deleteUnit(nutritiondict["fat"]))*(150/float(deleteUnit(nutritiondict["amount"]))))+"g",
+                                    calorie = str(deleteUnit(nutritiondict["calorie"])*(150/deleteUnit(nutritiondict["amount"])))+"kcal",
+                                    carbohydrate = str(deleteUnit(nutritiondict["carbohydrate"])*(150/deleteUnit(nutritiondict["amount"])))+"g",
+                                    protein = str(deleteUnit(nutritiondict["protein"])*(150/deleteUnit(nutritiondict["amount"])))+"g",
+                                    fat = str(deleteUnit(nutritiondict["fat"])*(150/deleteUnit(nutritiondict["amount"])))+"g",
                                     amount = nutritiondict["amount"]
                                 ).save()
 
@@ -508,7 +508,7 @@ class SetTakenFood(APIView):
                 food = food
             )
 
-            taken = float(deleteUnit(Nutrition.objects.get(name=foodname).calorie))
+            taken = deleteUnit(Nutrition.objects.get(name=foodname).calorie)
             kcalstatus = UserKcalStatus.objects.get(key=user, date=date)
             kcalstatus.taken += taken
             kcalstatus.save()
@@ -540,7 +540,7 @@ class SetTakenFood(APIView):
             user = User.objects.get(military_serial_number = military_serial_number)
             date = datetime.datetime.now(timezone('Asia/Seoul')).date().strftime('%Y-%m-%d')
             food = Nutrition.objects.get(name=foodname)
-            taken = float(deleteUnit(Nutrition.objects.get(name=foodname).calorie))
+            taken = deleteUnit(Nutrition.objects.get(name=foodname).calorie)
             kcalstatus = UserKcalStatus.objects.get(key=user, date=date)
             kcalstatus.taken -= taken
             kcalstatus.save()
@@ -580,13 +580,15 @@ class GetTakenFood(APIView):
             takenfood = UserTakenFood.objects.filter(key=user, date=date)
             body = {'taken': []}
             for food in takenfood:
+                pxfood = PXFood.objects.get(name=food.food.name)
                 body['taken'].append({
                     "name": food.food.name,
-                    "calorie": float(deleteUnit(food.food.calorie)),
-                    "carbohydrate": float(deleteUnit(food.food.carbohydrate)),
-                    "protein": float(deleteUnit(food.food.protein)),
-                    "fat": float(deleteUnit(food.food.fat)),
-                    "amount": float(deleteUnit(food.food.amount))
+                    "calorie": deleteUnit(food.food.calorie),
+                    "carbohydrate": deleteUnit(food.food.carbohydrate),
+                    "protein": deleteUnit(food.food.protein),
+                    "fat": deleteUnit(food.food.fat),
+                    "amount": deleteUnit(food.food.amount),
+                    "image": pxfood.image.url
                 })
 
             return JsonResponse(body, status=200)

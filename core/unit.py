@@ -2,9 +2,9 @@ from .jsonparser import getJsonValue
 
 def deleteUnit(string):
     if 'g' in string:
-        return string[:-1]
+        return float(string[:-1])
     else:
-        return string[:-4]
+        return float(string[:-4])
 
 
 def getUnitNumber(string):
