@@ -81,6 +81,7 @@ class Register(APIView):
             nutritionstatus = UserNutritionStatus.objects.create(
                 key = user,
                 date = date,
+                isdiet = False,
                 carbohydrate = 0,
                 protein = 0,
                 fat = 0
@@ -266,9 +267,10 @@ class GetKcalStatus(APIView):
             userhealth = UserHealth.objects.get(key=user)
             
             body = {
-                "taken": status.taken,
-                "burned": status.burned,
-                "remain": userhealth.totalkcal - status.taken
+                "taken": int(status.taken),
+                "burned": int(status.burned),
+                "remain": int(userhealth.totalkcal - status.taken),
+                "total": int(userhealth.totalkcal)
             }
             return JsonResponse(body, status=200)
 
@@ -303,19 +305,19 @@ class GetNutritionStatus(APIView):
             
             body = {
                 "taken": {
-                    "carbohydrate": nutritionstatus.carbohydrate,
-                    "protein": nutritionstatus.protein,
-                    "fat": nutritionstatus.fat,
+                    "carbohydrate": int(nutritionstatus.carbohydrate),
+                    "protein": int(nutritionstatus.protein),
+                    "fat": int(nutritionstatus.fat),
                 },
                 "percent": {
-                    "carbohydrate": nutritionstatus.carbohydrate/total['carbohydrate']*100,
-                    "protein": nutritionstatus.protein/total['protein']*100,
-                    "fat": nutritionstatus.fat/total['fat']*100,
+                    "carbohydrate": int(nutritionstatus.carbohydrate/total['carbohydrate']*100),
+                    "protein": int(nutritionstatus.protein/total['protein']*100),
+                    "fat": int(nutritionstatus.fat/total['fat']*100),
                 },
                 "total": {
-                    "carbohydrate": total['carbohydrate'],
-                    "protein": total['protein'],
-                    "fat": total['fat'],
+                    "carbohydrate": int(total['carbohydrate']),
+                    "protein": int(total['protein']),
+                    "fat": int(total['fat']),
                 }
             }
             return JsonResponse(body, status=200)

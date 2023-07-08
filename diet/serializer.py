@@ -22,10 +22,6 @@ class RecommendSerializer(serializers.Serializer):
     military_serial_number = serializers.CharField(help_text='군번', max_length=15)
 
 
-# class GetDietGaugeSerializer(serializers.Serializer):
-#     military_serial_number = serializers.CharField(help_text='군번', max_length=15)
-
-
 class SetTakenFoodSerializer(serializers.Serializer):
     military_serial_number = serializers.CharField(help_text='군번', max_length=15)
     food = serializers.CharField(help_text='음식이름', max_length=60)

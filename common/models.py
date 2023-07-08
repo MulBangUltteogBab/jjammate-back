@@ -12,7 +12,6 @@ class User(models.Model):
 
 class UserAdd(models.Model):
     key = models.ForeignKey(User, on_delete=models.CASCADE, db_column='key')
-    # nickname = models.CharField(max_length=20, unique=True)
     username = models.CharField(max_length=20)
     department = models.CharField(max_length=60)
     sex = models.CharField(max_length=1) #'m', 'f'
@@ -39,6 +38,7 @@ class UserKcalStatus(models.Model):
 class UserNutritionStatus(models.Model):
     key = models.ForeignKey(User, on_delete=models.CASCADE, db_column='key')
     date = models.DateField()
+    isdiet = models.BooleanField()
     carbohydrate = models.FloatField()
     protein = models.FloatField()
     fat = models.FloatField()
