@@ -17,7 +17,7 @@ class LoginConfirm:
                 user = User.objects.get(key=token_payload['key'])
                 request.user = user
                 return self.original_function(self, request, *args, **kwargs)
-            return JsonResponse({'messaege':'NEED_LOGIN'}, status=401)
+            return JsonResponse({'message':'NEED_LOGIN'}, status=401)
 
         except jwt.ExpiredSignatureError:
             return JsonResponse({'message':'EXPIRED_TOKEN'}, status=401)

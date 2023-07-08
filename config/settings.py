@@ -11,7 +11,8 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
-from .jsonparser import getJsonValue
+from core.jsonparser import getJsonValue
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,8 +26,10 @@ SECRET_KEY = getJsonValue("DJANGO-KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
+MEDIA_ROOT = os.path.join(BASE_DIR, 'image')
+MEDIA_URL = '/media/'
 
 # Application definition
 
@@ -38,7 +41,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'drf_yasg',
     'common',
+    'diet',
+    'exercise'
 ]
 
 MIDDLEWARE = [
@@ -50,6 +56,25 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PARSER_CLASSES': [
+       'rest_framework.parsers.FormParser',
+       'rest_framework.parsers.MultiPartParser',
+       'rest_framework.parsers.JSONParser',
+    ],
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ],
+}
 
 ROOT_URLCONF = 'config.urls'
 
@@ -128,17 +153,38 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {filename} {module} {lineno} {process:d} {thread:d} {message}",
+            "style": "{",
+        },
+        "simple": {
+            "format": "{levelname} {message}",
+            "style": "{",
+        },
+    },
     'handlers': {
         'file': {
             'level': 'ERROR',
             'class': 'logging.FileHandler',
             'filename': 'django.log',
         },
+        'mbub': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': 'user.log',
+            'formatter': 'verbose'
+        }
     },
     'loggers': {
         'django.request': {
             'handlers': ['file'],
             'level': 'ERROR',
+            'propagate': True,
+        },
+        'mbub': {
+            'handlers': ['mbub'],
+            'level': 'INFO',
             'propagate': True,
         },
     },
