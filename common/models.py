@@ -1,4 +1,5 @@
 from django.db import models
+from diet.models import *
 
 
 class User(models.Model):
@@ -31,6 +32,7 @@ class UserKcalStatus(models.Model):
     key = models.ForeignKey(User, on_delete=models.CASCADE, db_column='key')
     date = models.DateField()
     burned = models.FloatField()
+    isdiet = models.BooleanField()
     taken = models.FloatField()
 
 
@@ -45,13 +47,7 @@ class UserNutritionStatus(models.Model):
 class UserTakenFood(models.Model):
     key = models.ForeignKey(User, on_delete=models.CASCADE, db_column='key')
     date = models.DateField()
-    foodlist = models.JSONField()
-    '''
-    {
-        "pxfood": [],
-        "diet": []
-    }
-    '''
+    food = models.ForeignKey(Nutrition, on_delete=models.PROTECT, db_column='nutr')
 
 
 class UserExerciseSelector(models.Model):

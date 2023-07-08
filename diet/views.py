@@ -118,14 +118,14 @@ class Recommend(APIView):
             for i in index:
                 nutr = Nutrition.objects.get(name = pxfoods[i].name)
                 body['pxfoods'].append({
-                            "name": pxfoods[i].name,
-                            "calorie": float(deleteUnit(nutr.calorie)),
-                            "carbohydrate": float(deleteUnit(nutr.carbohydrate)),
-                            "protein": float(deleteUnit(nutr.protein)),
-                            "fat": float(deleteUnit(nutr.fat)),
-                            "amount": float(deleteUnit(nutr.amount)),
-                            "image": pxfoods[i].image.url
-                        })
+                    "name": pxfoods[i].name,
+                    "calorie": float(deleteUnit(nutr.calorie)),
+                    "carbohydrate": float(deleteUnit(nutr.carbohydrate)),
+                    "protein": float(deleteUnit(nutr.protein)),
+                    "fat": float(deleteUnit(nutr.fat)),
+                    "amount": float(deleteUnit(nutr.amount)),
+                    "image": pxfoods[i].image.url
+                })
             UserRecommendPXFood.objects.create(
                 key = user,
                 date = date,
@@ -230,23 +230,11 @@ class GetPXFoodList(APIView):
     def post(self, request):
         data = request.data
         try:
-            body = {
-                "pxfoods": []
-            }
-            if ("begin" not in data) and ("end" not in data):
-                pxfoods = PXFood.objects.all().order_by('id')
-                for pxfood in pxfoods:
-                    nutr = Nutrition.objects.get(name = pxfood.name)
-                    body['pxfoods'].append({
-                        "name": pxfood.name,
-                        "calorie": nutr.calorie,
-                        "carbohydrate": nutr.carbohydrate,
-                        "protein": nutr.protein,
-                        "fat": nutr.fat,
-                        "amount": nutr.amount,
-                        "image": pxfood.image.url
-                    })
-            else:
+            body = {"pxfoods": []}
+            pxfoods = PXFood.objects.all().order_by('id')
+            begin = 0
+            end = pxfoods.count()
+            if ("begin" in data) and ("end" in data):
                 begin = data["begin"]
                 end = data["end"]
                 pxfoods = PXFood.objects.all().order_by('id')
@@ -257,18 +245,18 @@ class GetPXFoodList(APIView):
                 if pxfoods.count() < begin:
                     begin = pxfoods.count()
 
-                pxfoods = pxfoods[begin:end]
-                for pxfood in pxfoods:
-                    nutr = Nutrition.objects.get(name = pxfood.name)
-                    body['pxfoods'].append({
-                        "name": pxfood.name,
-                        "calorie": nutr.calorie,
-                        "carbohydrate": nutr.carbohydrate,
-                        "protein": nutr.protein,
-                        "fat": nutr.fat,
-                        "amount": nutr.amount,
-                        "image": pxfood.image.url
-                    })
+            pxfoods = pxfoods[begin:end]
+            for pxfood in pxfoods:
+                nutr = Nutrition.objects.get(name = pxfood.name)
+                body['pxfoods'].append({
+                    "name": pxfood.name,
+                    "calorie": nutr.calorie,
+                    "carbohydrate": nutr.carbohydrate,
+                    "protein": nutr.protein,
+                    "fat": nutr.fat,
+                    "amount": nutr.amount,
+                    "image": pxfood.image.url
+                })
             return JsonResponse(body, status=200)
 
         except KeyError:
@@ -292,9 +280,13 @@ class GetDiet(APIView):
     def post(self, request):
         data = request.data
         try:
-            military_number = getUnitNumber(data['military_number'])
+            military_serial_number = data['military_serial_number']
+            user = User.objects.get(military_serial_number = military_serial_number)
+            add = UserAdd.objects.get(key=user)
+            military_number = getUnitNumber(add.department)
             date = datetime.datetime.now(timezone('Asia/Seoul')).date().strftime('%Y-%m-%d')
             diet = Diet.objects.get(military_number = int(military_number), date = date)
+            kcalstatus = UserKcalStatus.objects.get(key=user, date=date)
             body = {}
             body['breakfast'] = []
             body['lunch'] = []
@@ -303,6 +295,8 @@ class GetDiet(APIView):
                 if breakfast == "":
                     continue
                 nutr = Nutrition.objects.get(name = breakfast)
+                if not kcalstatus.isdiet:
+                    kcalstatus.taken += float(deleteUnit(nutr.calorie))
                 body['breakfast'].append({
                     "name": breakfast,
                     "calorie": float(deleteUnit(nutr.calorie)),
@@ -315,6 +309,8 @@ class GetDiet(APIView):
                 if lunch == "":
                     continue
                 nutr = Nutrition.objects.get(name = lunch)
+                if not kcalstatus.isdiet:
+                    kcalstatus.taken += float(deleteUnit(nutr.calorie))
                 body['lunch'].append({
                     "name": lunch,
                     "calorie": float(deleteUnit(nutr.calorie)),
@@ -327,6 +323,8 @@ class GetDiet(APIView):
                 if dinner == "":
                     continue
                 nutr = Nutrition.objects.get(name = dinner)
+                if not kcalstatus.isdiet:
+                    kcalstatus.taken += float(deleteUnit(nutr.calorie))
                 body['dinner'].append({
                     "name": dinner,
                     "calorie": float(deleteUnit(nutr.calorie)),
@@ -335,6 +333,8 @@ class GetDiet(APIView):
                     "fat": float(deleteUnit(nutr.fat)),
                     "amount": float(deleteUnit(nutr.amount))
                 })
+            kcalstatus.isdiet = True
+            kcalstatus.save()
             return JsonResponse(body, status=200)
 
         except KeyError:
@@ -498,40 +498,58 @@ class SetTakenFood(APIView):
         data = request.data
         try:
             military_serial_number = data['military_serial_number']
-            foodlist = data['foodlist']
+            foodname = data['food']
             user = User.objects.get(military_serial_number = military_serial_number)
             date = datetime.datetime.now(timezone('Asia/Seoul')).date().strftime('%Y-%m-%d')
-            if not UserTakenFood.objects.filter(key=user, date=date).exists():
-                UserTakenFood.objects.create(
-                    key = user,
-                    date = date,
-                    foodlist = {
-                        "pxfood":[],
-                        "diet":[]
-                    }
-                ).save()
-            takenfood = UserTakenFood.objects.get(key=user, date=date)
-            if len(takenfood.foodlist["diet"]) == 0:
-                add = UserAdd.objects.get(key=user)
-                military_number = int(getUnitNumber(add.department))
-                diet = Diet.objects.get(military_number = military_number, date = date)
-                for meal in diet.diet:
-                    for food in diet.diet[meal]:
-                        takenfood.foodlist["diet"].append(food)
-            takenfood.foodlist["pxfood"] = []
-            takenfood.foodlist["pxfood"] += foodlist['pxfood']
+            food = Nutrition.objects.get(name=foodname)
+            UserTakenFood.objects.create(
+                key = user,
+                date = date,
+                food = food
+            )
 
-            taken = 0
-            for foodname in foodlist["pxfood"]:
-                taken += float(deleteUnit(Nutrition.objects.get(name=foodname).calorie))
-            
-            logger.info("pass")
-
+            taken = float(deleteUnit(Nutrition.objects.get(name=foodname).calorie))
             kcalstatus = UserKcalStatus.objects.get(key=user, date=date)
-            kcalstatus.taken = taken
+            kcalstatus.taken += taken
             kcalstatus.save()
 
-            takenfood.save()
+            return JsonResponse({"message" : "먹은 음식 갱신 성공"}, status=200)
+                    
+        except KeyError:
+            return JsonResponse({"message" : "받지 못한 데이터가 존재합니다."}, status=401)
+
+        except ObjectDoesNotExist:
+            return JsonResponse({"message" : "데이터가 존재하지 않습니다."}, status=402)
+        
+
+    @swagger_auto_schema(
+        tags=['About Diet'], 
+        request_body=DelTakenFoodSerializer,
+        responses={
+            "200": SetTakenFoodSuccessSerializer,
+            "401": KeyErrorResponseSerializer,
+            "402": NoDBErrorSerializer
+        })
+    @transaction.atomic
+    @csrf_exempt
+    def delete(self, request):
+        data = request.data
+        try:
+            military_serial_number = data['military_serial_number']
+            foodname = data['food']
+            user = User.objects.get(military_serial_number = military_serial_number)
+            date = datetime.datetime.now(timezone('Asia/Seoul')).date().strftime('%Y-%m-%d')
+            food = Nutrition.objects.get(name=foodname)
+            taken = float(deleteUnit(Nutrition.objects.get(name=foodname).calorie))
+            kcalstatus = UserKcalStatus.objects.get(key=user, date=date)
+            kcalstatus.taken -= taken
+            kcalstatus.save()
+
+            UserTakenFood.objects.get(
+                key = user,
+                date = date,
+                food = food
+            ).delete()
 
             return JsonResponse({"message" : "먹은 음식 갱신 성공"}, status=200)
                     
@@ -559,24 +577,17 @@ class GetTakenFood(APIView):
             military_serial_number = data['military_serial_number']
             user = User.objects.get(military_serial_number = military_serial_number)
             date = datetime.datetime.now(timezone('Asia/Seoul')).date().strftime('%Y-%m-%d')
-            if not UserTakenFood.objects.filter(key=user, date=date).exists():
-                UserTakenFood.objects.create(
-                    key = user,
-                    date = date,
-                    foodlist = {
-                        "pxfood":[],
-                        "diet":[]
-                    }
-                ).save()
-            takenfood = UserTakenFood.objects.get(key=user, date=date)
-            if len(takenfood.foodlist["diet"]) == 0:
-                add = UserAdd.objects.get(key=user)
-                military_number = int(getUnitNumber(add.department))
-                diet = Diet.objects.get(military_number = military_number, date = date)
-                for meal in diet.diet:
-                    for food in diet.diet[meal]:
-                        takenfood.foodlist["diet"].append(food)
-            body = takenfood.foodlist
+            takenfood = UserTakenFood.objects.filter(key=user, date=date)
+            body = {'taken': []}
+            for food in takenfood:
+                body['taken'].append({
+                    "name": food.food.name,
+                    "calorie": float(deleteUnit(food.food.calorie)),
+                    "carbohydrate": float(deleteUnit(food.food.carbohydrate)),
+                    "protein": float(deleteUnit(food.food.protein)),
+                    "fat": float(deleteUnit(food.food.fat)),
+                    "amount": float(deleteUnit(food.food.amount))
+                })
 
             return JsonResponse(body, status=200)
                     

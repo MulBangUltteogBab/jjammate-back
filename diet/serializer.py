@@ -11,7 +11,7 @@ class StackDietSerializer(serializers.Serializer):
 
 
 class GetDietSerializer(serializers.Serializer):
-    military_number = serializers.CharField(help_text='부대 이름', max_length=60, default='제5군수지원사령부')
+    military_serial_number = serializers.CharField(help_text='군번', max_length=15)
 
 
 class GetPXFoodSerializer(serializers.Serializer):
@@ -28,9 +28,12 @@ class RecommendSerializer(serializers.Serializer):
 
 class SetTakenFoodSerializer(serializers.Serializer):
     military_serial_number = serializers.CharField(help_text='군번', max_length=15)
-    foodlist = serializers.JSONField(help_text='섭취한 전체 음식', default={
-        "pxfood": ["음식1", "음식2"],
-    })
+    food = serializers.CharField(help_text='음식이름', max_length=60)
+
+
+class DelTakenFoodSerializer(serializers.Serializer):
+    military_serial_number = serializers.CharField(help_text='군번', max_length=15)
+    food = serializers.CharField(help_text='음식이름', max_length=60)
 
 
 class GetTakenFoodSerializer(serializers.Serializer):

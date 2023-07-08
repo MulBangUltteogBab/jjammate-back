@@ -3,6 +3,7 @@ from .views import *
 
 
 urlpatterns = [
+    path('api/setexercise/', SetExercise.as_view()),
     path('api/getexercise/', GetExercise.as_view()),
     path('api/setsetcount/', SetSetCount.as_view()),
     path('api/getsetcount/', GetSetCount.as_view()),

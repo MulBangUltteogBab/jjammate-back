@@ -1,5 +1,5 @@
 from django.db import models
-from common.models import User
+from common.models import *
 
 
 class PXFood(models.Model):

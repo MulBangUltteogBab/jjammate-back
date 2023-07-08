@@ -42,8 +42,6 @@ class Register(APIView):
         try:
             if User.objects.filter(military_serial_number = data['military_serial_number']).exists():
                 return JsonResponse({"message" : "이미 존재하는 회원입니다."}, status=400)
-            # if UserAdd.objects.filter(nickname = data['nickname']).exists():
-            #     return JsonResponse({"message" : "EXISTS_NICKNAME"}, status=400)
             
             date = datetime.datetime.now(timezone('Asia/Seoul')).date().strftime('%Y-%m-%d')
             bmi = data['weight']/((data['height']/100)**2)
@@ -56,7 +54,6 @@ class Register(APIView):
             )
             add = UserAdd.objects.create(
                 key = user,
-                # nickname = data['nickname'],
                 username = data['username'],
                 department = data['department'],
                 sex = data['sex'],
@@ -78,6 +75,7 @@ class Register(APIView):
                 key = user,
                 burned = 0,
                 taken = 0,
+                isdiet = False,
                 date = date
             )
             nutritionstatus = UserNutritionStatus.objects.create(
@@ -116,7 +114,6 @@ class Login(APIView):
         })
     @transaction.atomic
     @csrf_exempt
-    @modelsInit
     def post(self, request):
         data = request.data
         try:
@@ -135,9 +132,8 @@ class Login(APIView):
                         'height': userhealth.height,
                         'weight': userhealth.weight,
                         'bmi': userhealth.bmi
-                        }, SECRET_KEY, algorithm='HS256')
+                    }, SECRET_KEY, algorithm='HS256')
                     return JsonResponse({"token" : token}, status=200)
-                return JsonResponse({'message' : "회원 정보가 존재하지 않거나 비밀번호가 틀렸습니다."}, status=400)
             return JsonResponse({'message' : "회원 정보가 존재하지 않거나 비밀번호가 틀렸습니다."}, status=400)
         
         except KeyError:
@@ -228,13 +224,11 @@ class GetMyInfo(APIView):
         try:
             logger.info(data)
             military_serial_number = data['military_serial_number']
-            date = datetime.datetime.now(timezone('Asia/Seoul')).date().strftime('%Y-%m-%d')
             user = User.objects.get(military_serial_number = military_serial_number)
             add = UserAdd.objects.get(key=user)
             health = UserHealth.objects.get(key=user)
             body = {
                 "military_serial_number": military_serial_number,
-                # "nickname": add.nickname,
                 "username": add.username,
                 "department": add.department,
                 "sex": add.sex,

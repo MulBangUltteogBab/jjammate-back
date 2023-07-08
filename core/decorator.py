@@ -21,6 +21,7 @@ def modelsInit(func):
                 key = user,
                 burned = 0,
                 taken = 0,
+                isdiet = False,
                 date = date
             ).save()
         if not UserNutritionStatus.objects.filter(key=user, date=date).exists():

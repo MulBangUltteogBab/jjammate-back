@@ -81,7 +81,7 @@ def parsePXFood():
                 "amount": [],
                 "price": []
             }
-            for i in range(0, 200, 4):
+            for i in range(0, 200, 4): #len(tds)
                 if tds[i].text in manufacturer:
                     pxfooddict["manufacturer"].append(tds[i].text)
                     pxfooddict["name"].append(tds[i+1].text)

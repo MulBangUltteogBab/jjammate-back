@@ -50,11 +50,7 @@ class GetExercise(APIView):
                 exercise = mission.exercise
                 return JsonResponse(exercise, status=200)
 
-            body = {
-                "data": [
-                    
-                ] 
-            }
+            body = {"data": []}
 
             exercise = getJsonValue("exercise", "exercise.json")
             index = 0
@@ -111,13 +107,13 @@ class SetExercise(APIView):
         data = request.data
         try:
             military_serial_number = data['military_serial_number']
-            index = data['id']
+            index = data['index']
             user = User.objects.get(military_serial_number = military_serial_number)
             date = datetime.datetime.now(timezone('Asia/Seoul')).date().strftime('%Y-%m-%d')
             mission = ExerciseMission.objects.get(key = user, date = date)
             for option in mission.exercise['data']:
                 if option['id'] == index:
-                    option['done'] == True
+                    option['done'] = True
                     kcalstatus = UserKcalStatus.objects.get(key=user, date=date)
                     kcalstatus.burned += option['burned'] * 4
                     kcalstatus.save()
