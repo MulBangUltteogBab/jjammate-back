@@ -412,7 +412,7 @@ class StackDiet(APIView):
                             if diet == "":
                                 continue
                             if Nutrition.objects.filter(name = diet).exists():
-                                continue
+                                Nutrition.objects.get(name = diet).delete()
                             nutritiondict, isvaild = mappingFoodToNutrient(diet)
                             if not isvaild:
                                 logger.info(diet + " is not vaild")
