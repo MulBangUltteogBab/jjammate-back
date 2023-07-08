@@ -545,11 +545,12 @@ class SetTakenFood(APIView):
             kcalstatus.taken -= taken
             kcalstatus.save()
 
-            UserTakenFood.objects.get(
+            taken = UserTakenFood.objects.filter(
                 key = user,
                 date = date,
                 food = food
-            ).delete()
+            ).last()
+            taken.delete()
 
             return JsonResponse({"message" : "먹은 음식 갱신 성공"}, status=200)
                     
