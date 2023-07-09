@@ -375,6 +375,7 @@ class StackDiet(APIView):
         data = request.data
         try:
             military_number = data['military_number']
+            today = datetime.datetime.now(timezone('Asia/Seoul')).date()
             for n in military_number:
                 logger.info("military_number: {}".format(n))
                 diets = getDiet(n)
@@ -383,9 +384,7 @@ class StackDiet(APIView):
                     date = diet['dates'][:-3]
                     if not isValidDate(date):
                         continue
-                    if Diet.objects.filter(military_number = n, date = date).exists():
-                        continue
-                    if datetime.date.fromisoformat(date) >= datetime.datetime.now(timezone('Asia/Seoul')).date():
+                    if today <= datetime.date.fromisoformat(date) <= today + datetime.timedelta(days=30):
                         if date not in mealbydates:
                             mealbydates[date] = {
                                 'breakfast': [],
